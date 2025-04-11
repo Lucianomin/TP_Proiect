@@ -9,7 +9,7 @@
 #define WINDOW_H 600
 int plant_crops()
 {
-    
+
 }
 
 
@@ -48,7 +48,7 @@ void render_modal(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
     
      // ====== REPLACE THE TITLE RECTANGLE WITH THIS TTF CODE ======
      SDL_Color white = {255, 255, 255, 255};
-     SDL_Surface* title_surface = TTF_RenderText_Blended(font, "Plant crops!", white);
+     SDL_Surface* title_surface = TTF_RenderText_Blended(font, "Choose crops:", white);
      SDL_Texture* title_texture = SDL_CreateTextureFromSurface(renderer, title_surface);
      SDL_Rect title_rect = {
          modal.x + 15,
@@ -109,6 +109,7 @@ void render_modal(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
     if (drawButton(renderer, wheat_texture,wheat_texture, buttonRect2, mx, my, mouseState)) {
         {
             printf("%d Buton apăsat wheatt!\n",show_modal);
+            
             SDL_Delay(64);
         }
 
@@ -171,7 +172,7 @@ int main() {
     //fac render pt button
     //SDL_Texture* buttonTexture = loadTexture("assets/bread.jpg", renderer);
     // Încărcare imagine
-    SDL_Surface *button_image=IMG_Load("assets/bread.jpg"); 
+    SDL_Surface *button_image=IMG_Load("assets/wheat_after.png"); 
     SDL_Texture *buttonTexture= SDL_CreateTextureFromSurface(renderer,button_image);
     
     SDL_Surface *image = IMG_Load("assets/grass_background_v1.jpg");
