@@ -4,77 +4,19 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-SDL_Texture* loadTexture(const char *file, SDL_Renderer *renderer) {
-    SDL_Texture *newTexture = NULL;
-    newTexture = IMG_LoadTexture(renderer, file);
-    if (newTexture == NULL) {
-        printf("Unable to load texture: %s\n", SDL_GetError());
-    }
-    return newTexture;
+
+int drawButton(SDL_Renderer *renderer, SDL_Texture *button_texture, SDL_Rect button, int mouseX, int mouseY, Uint32 mouseState) {
+    // Check hover state
+    int hovered = (mouseX >= button.x && mouseX <= button.x + button.w &&
+                   mouseY >= button.y && mouseY <= button.y + button.h);
+    
+    // Draw the button
+    SDL_Texture *texture = hovered ? button_texture : NULL;
+    SDL_RenderCopy(renderer, texture, NULL, &button);
+    
+    // Check click
+    return hovered && (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
 }
-
-
-// int drawButton(SDL_Renderer *renderer, SDL_Texture *button_texture, SDL_Rect button, SDL_Event *event) {
-//     int mouseX, mouseY;
-//     static int hovered = 0;
-//     static int click_handled = 0;  // To prevent multiple triggers
-
-//     // Get current mouse state (works even when no events are coming)
-//     SDL_GetMouseState(&mouseX, &mouseY);
-
-//     // Check hover state
-//     hovered = (mouseX >= button.x && mouseX <= button.x + button.w &&
-//                mouseY >= button.y && mouseY <= button.y + button.h);
-
-//     // Draw the button (your existing texture logic)
-//     SDL_Texture *texture = hovered ? button_texture : NULL;
-//     SDL_RenderCopy(renderer, texture, NULL, &button);
-
-//     // Improved click detection
-//     if (event) {
-//         switch (event->type) {
-//             case SDL_MOUSEBUTTONDOWN:
-//                 if (hovered && event->button.button == SDL_BUTTON_LEFT) {
-//                     click_handled = 1;
-//                     return 1;
-//                 }
-//                 break;
-                
-//             case SDL_MOUSEBUTTONUP:
-//                 click_handled = 0;  // Reset on button release
-//                 break;
-//         }
-//     }
-
-//     return 0;
-// }
-int drawButton(SDL_Renderer *renderer,SDL_Texture *buton_texture ,SDL_Rect button, SDL_Event *event) {
-    int mouseX, mouseY;
-    static int hovered=0;
-    SDL_GetMouseState(&mouseX, &mouseY);
-
-    // Verificăm dacă mouse-ul e peste buton
-     hovered = mouseX >= button.x && mouseX <= button.x + button.w &&
-                  mouseY >= button.y && mouseY <= button.y + button.h;
-
-    // Setăm culoarea
-    SDL_Texture *texture = hovered ? buton_texture : NULL;
-    //SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-    //SDL_RenderFillRect(renderer, &button);
-    SDL_RenderCopy(renderer,texture,NULL,&button);
-
-    // Verificăm click
-    // if(isMouseSelection==true)
-    //     return 1;
-    if (hovered && event->type == SDL_MOUSEBUTTONDOWN && event->button.button == SDL_BUTTON_LEFT) {
-        return 1; // A fost apăsat
-    }
-     if(event->button.button == SDL_BUTTON_LEFT && event->button.button == SDL_BUTTON_LEFT)
-        return  1;
-    return 0; // Nu a fost apăsat
-}
-
-
 
 int main() {
     // Disable game controllers which might steal events
@@ -142,41 +84,31 @@ SDL_JoystickEventState(SDL_IGNORE);
 
         // Buclă principală
         int running = 1;
-        SDL_Event event;
-        
-        while (running) {
-            while (SDL_PollEvent(&event)) {
-                if (event.type == SDL_QUIT)
-                    running = 0;
-            }
+SDL_Event event;
 
-            // if (event.type == SDL_QUIT) {
-            //     printf("Quit event received\n");
-            //     break;
-            // }
-            // else if (event.type == SDL_MOUSEMOTION) {
-            //     printf("Mouse motion: (%d,%d)\n", event.motion.x, event.motion.y);
-            // }
-            // else if (event.type == SDL_MOUSEBUTTONDOWN) {
-            //     printf("Mouse button DOWN: %d at (%d,%d)\n", 
-            //            event.button.button, event.button.x, event.button.y);
-            // }
-            // else if (event.type == SDL_MOUSEBUTTONUP) {
-            //     printf("Mouse button UP: %d at (%d,%d)\n", 
-            //            event.button.button, event.button.x, event.button.y);
-            // }
-            // // ... your existing code
-
-            SDL_RenderClear(renderer);
-            SDL_RenderCopy(renderer, texture, NULL, NULL);
-            ///Butoane ce desenam peste
-            if (drawButton(renderer,buttonTexture ,buttonRect1, &event)) {
-                printf("Buton apăsat!\n");
-            }
-          
-            SDL_RenderPresent(renderer);
-           
+while (running) {
+    // Get mouse state once per frame
+    int mouseX, mouseY;
+    Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+    
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            running = 0;
         }
+    }
+    
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    
+    // Draw button and check click
+    if (drawButton(renderer, buttonTexture, buttonRect1, mouseX, mouseY, mouseState)) {
+        printf("Buton apăsat!\n");
+        // Optional: Add delay or visual feedback here
+    }
+    
+    SDL_RenderPresent(renderer);
+    SDL_Delay(64); // Cap at ~60 FPS
+}
         SDL_DestroyTexture(texture);
     }
 
