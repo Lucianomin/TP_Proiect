@@ -7,10 +7,13 @@
 //asta modal crops
 #define WINDOW_W 800
 #define WINDOW_H 600
-int plant_crops()
-{
+//crops
+#define MAX_CROPS 20
 
-}
+Uint32 cropTimers[MAX_CROPS];
+bool cropPlanted[MAX_CROPS];
+bool grau_e_copt = true;
+
 
 
 int drawButton(SDL_Renderer *renderer, SDL_Texture *button_texture, SDL_Texture *button_texture_2,SDL_Rect button, int mouseX, int mouseY, Uint32 mouseState) {
@@ -27,10 +30,25 @@ int drawButton(SDL_Renderer *renderer, SDL_Texture *button_texture, SDL_Texture 
 }
 
 
+int handleButtonWithCondition(SDL_Renderer *renderer, SDL_Texture *normalTexture, SDL_Texture *hoverTextureConditionTrue, SDL_Texture *hoverTextureConditionFalse,
+    SDL_Rect button, int mouseX, int mouseY, Uint32 mouseState, bool condition) {
+// Determine which hover texture to use
+SDL_Texture *hoverTexture = condition ? hoverTextureConditionTrue : hoverTextureConditionFalse;
+
+// Determine which texture to render (hover or not)
+int hovered = (mouseX >= button.x && mouseX <= button.x + button.w &&
+mouseY >= button.y && mouseY <= button.y + button.h);
+
+SDL_Texture *textureToUse = hovered ? hoverTexture : normalTexture;
+SDL_RenderCopy(renderer, textureToUse, NULL, &button);
+
+// Return click state
+return hovered && (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
+}
 
 
 
-void render_modal(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
+/*void render_modal(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
     // Semi-transparent overlay
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
@@ -106,15 +124,19 @@ void render_modal(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
     Uint32 mouseState = SDL_GetMouseState(&mx, &my);
     SDL_FreeSurface(wheat_image);
 
-    if (drawButton(renderer, wheat_texture,wheat_texture, buttonRect2, mx, my, mouseState)) {
-        {
-            printf("%d Buton apăsat wheatt!\n",show_modal);
-            
-            SDL_Delay(64);
+    if (drawButton(renderer, wheat_texture, wheat_texture, buttonRect2, mx, my, mouseState)) {
+        for (int i = 0; i < MAX_CROPS; i++) {
+            if (!cropPlanted[i]) {
+                cropPlanted[i] = true;
+                cropTimers[i] = SDL_GetTicks(); // pornește timer
+                printf("Grau plantat în slotul %d!\n", i);
+                break;
+            }
         }
-
+        SDL_Delay(200);
     }
-}
+    
+}*/
 
 
 int main() {
@@ -184,7 +206,6 @@ int main() {
         SDL_FreeSurface(image);
 
         // Buclă principală
-        bool show_modal=false;
         int running = 1;
         SDL_Event event;
 
@@ -203,19 +224,20 @@ int main() {
         SDL_RenderCopy(renderer, texture, NULL, NULL);
     
         // Draw button and check click
-         if (drawButton(renderer, buttonTexture,NULL, buttonRect1, mouseX, mouseY, mouseState)) {
-            {
-                show_modal=true;
-                printf("%d Buton apăsat!\n",show_modal);
-                SDL_Delay(64);
-            }
-             
-         }
-         if (show_modal) {
-            render_modal(renderer, &show_modal, title_font);
-            // Draw button and check click
-        
+    
+
+        // if (drawButton(renderer, buttonTexture, NULL, buttonRect1, mouseX, mouseY, mouseState)) {
+        //     printf(" Buton apăsat!\n");
+        //         SDL_Delay(64);  
+        //         if (drawButton(renderer, buttonTexture, buttonTexture, buttonRect1, mouseX, mouseY, mouseState))
+        //         {
+        //             printf("planmtat");
+        //         }
+        //  }
+        if (handleButtonWithCondition(renderer, NULL, buttonTexture, buttonTexture, buttonRect1, mouseX, mouseY, mouseState, grau_e_copt)) {
+            printf("Butonul a fost apăsat și condiția e %s!\n", grau_e_copt ? "adevărată" : "falsă");
         }
+        
     
     SDL_RenderPresent(renderer);
     SDL_Delay(64); // Cap at ~60 FPS
