@@ -3,16 +3,21 @@
 #include <SDL2/SDL_ttf.h>
 #include <stdbool.h>
 #include <stdio.h>
+//bibliotexa proproe
+//#include "draw_library.h"
 
 //asta modal crops
 #define WINDOW_W 800
 #define WINDOW_H 600
 //crops
-#define MAX_CROPS 20
+#define MAX_CROPS 6
+#define MAX_FACTORY 3
 
-Uint32 cropTimers[MAX_CROPS];
+//Uint32 cropTimers[MAX_CROPS];
 bool cropPlanted[MAX_CROPS];
+bool factoryUsed[MAX_FACTORY];
 bool grau_e_copt = true;
+bool bread_factory = true;
 
 
 
@@ -48,7 +53,7 @@ return hovered && (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
 
 
 
-/*void render_modal(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
+void render_modal(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
     // Semi-transparent overlay
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
@@ -128,15 +133,201 @@ return hovered && (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
         for (int i = 0; i < MAX_CROPS; i++) {
             if (!cropPlanted[i]) {
                 cropPlanted[i] = true;
-                cropTimers[i] = SDL_GetTicks(); // pornește timer
+                //cropTimers[i] = SDL_GetTicks(); // pornește timer
                 printf("Grau plantat în slotul %d!\n", i);
                 break;
             }
         }
         SDL_Delay(200);
     }
+    int wheat_count = 0;
+for (int i = 0; i < MAX_CROPS; i++) {
+    if (cropPlanted[i]) {
+        wheat_count++;
+    }
+}
+
+// Create the text "x N"
+char countText[20];
+sprintf(countText, "x %d", wheat_count);
+
+// Render the text
+SDL_Color textColor = {255, 255, 255, 255}; // white
+SDL_Surface* textSurface = TTF_RenderText_Blended(font, countText, textColor);
+SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+
+// Set position under the wheat button
+SDL_Rect textRect = {
+    buttonRect2.x + buttonRect2.w/2 - textSurface->w/2, // center text horizontally
+    buttonRect2.y + buttonRect2.h + 5, // just below button
+    textSurface->w,
+    textSurface->h
+};
+
+SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+
+// Clean up
+SDL_FreeSurface(textSurface);
+SDL_DestroyTexture(textTexture);
     
-}*/
+}
+
+
+
+//function render modal factory bread
+void render_modal_factory(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
+    // Load textures ONCE at program start, not here
+    static SDL_Texture* wheat_texture = NULL;
+    static SDL_Texture* wheat_texture_hover=NULL;
+    static bool textures_loaded = false;
+    
+    // Initialize textures if not already loaded
+    if (!textures_loaded) {
+        SDL_Surface* wheat_image_hover = IMG_Load("assets/bread_hover.png");
+        if (!wheat_image_hover) {
+            printf("Failed to load bread_hover.png: %s\n", IMG_GetError());
+            return;
+        }
+        wheat_texture_hover = SDL_CreateTextureFromSurface(renderer, wheat_image_hover);
+        SDL_FreeSurface(wheat_image_hover);
+
+
+        SDL_Surface* wheat_image = IMG_Load("assets/bread.png");
+        if (!wheat_image) {
+            printf("Failed to load bread.png: %s\n", IMG_GetError());
+            return;
+        }
+        wheat_texture = SDL_CreateTextureFromSurface(renderer, wheat_image);
+        SDL_FreeSurface(wheat_image);
+        textures_loaded = true;
+    }
+
+    // Semi-transparent overlay
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
+    SDL_RenderFillRect(renderer, NULL);
+    
+    // Modal box
+    SDL_Rect modal = {WINDOW_W/2-200, WINDOW_H/2-150, 400, 300};
+    SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
+    SDL_RenderFillRect(renderer, &modal);
+    
+    // Title bar
+    SDL_Rect title_bar = {modal.x, modal.y, modal.w, 40};
+    SDL_SetRenderDrawColor(renderer, 70, 70, 80, 255);
+    SDL_RenderFillRect(renderer, &title_bar);
+    
+    // Title text
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Surface* title_surface = TTF_RenderText_Blended(font, "Choose what to bake:", white);
+    if (!title_surface) {
+        printf("Failed to render title text: %s\n", TTF_GetError());
+        return;
+    }
+    
+    SDL_Texture* title_texture = SDL_CreateTextureFromSurface(renderer, title_surface);
+    if (!title_texture) {
+        printf("Failed to create title texture: %s\n", SDL_GetError());
+        SDL_FreeSurface(title_surface);
+        return;
+    }
+    
+    SDL_Rect title_rect = {
+        modal.x + 15,
+        modal.y + (title_bar.h - title_surface->h)/2,
+        title_surface->w,
+        title_surface->h
+    };
+    SDL_RenderCopy(renderer, title_texture, NULL, &title_rect);
+    
+    // Clean up title resources
+    SDL_FreeSurface(title_surface);
+    SDL_DestroyTexture(title_texture);
+    
+    // Close button logic (your existing code remains the same)
+     // Enhanced close button with hover effect
+     SDL_Rect close_btn = {modal.x + modal.w - 35, modal.y + 10, 20, 20};
+    
+     // Hover effect
+     int mx, my;
+     Uint32 mouseState = SDL_GetMouseState(&mx, &my); 
+     bool hovered = SDL_PointInRect(&(SDL_Point){mx, my}, &close_btn);
+     
+     // Close button background
+     SDL_SetRenderDrawColor(renderer, 
+                          hovered ? 220 : 255,  // Brighter when hovered
+                          hovered ? 80 : 100,
+                          100,
+                          255);
+     SDL_RenderFillRect(renderer, &close_btn);
+     
+     // Close button border
+     SDL_SetRenderDrawColor(renderer, 180, 60, 60, 255);
+     SDL_RenderDrawRect(renderer, &close_btn);
+     
+     // Draw X symbol (your existing code)
+     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+     SDL_RenderDrawLine(renderer, 
+                      close_btn.x + 5, close_btn.y + 5,
+                      close_btn.x + close_btn.w - 5, close_btn.y + close_btn.h - 5);
+     SDL_RenderDrawLine(renderer,
+                      close_btn.x + close_btn.w - 5, close_btn.y + 5,
+                      close_btn.x + 5, close_btn.y + close_btn.h - 5);
+     
+     // Check close button click
+     if (hovered && SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) {
+         *show_modal = false;
+     }
+
+
+    
+    // Modal content area
+    SDL_Rect content_area = {modal.x, modal.y + title_bar.h, modal.w, modal.h - title_bar.h};
+    SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
+    SDL_RenderFillRect(renderer, &content_area);
+    
+    // Button position
+    SDL_Rect buttonRect2 = {modal.x, modal.y - title_bar.h + 90, 60, 60};
+    
+    // Draw button
+    if (wheat_texture && drawButton(renderer, wheat_texture_hover, wheat_texture, buttonRect2, mx, my, mouseState)) {
+        for (int i = 0; i < MAX_FACTORY; i++) {
+            if (!factoryUsed[i]) {
+                factoryUsed[i] = true;
+                printf("Paine pusa la copt %d!\n", i);
+                break;
+            }
+        }
+    }
+    
+    // Count active factories
+    int factory_count = 0;
+    for (int i = 0; i < MAX_FACTORY; i++) {
+        if (factoryUsed[i]) {
+            factory_count++;
+        }
+    }
+    
+    // Render count text
+    char countText[20];
+    snprintf(countText, sizeof(countText), "x %d", factory_count);
+    
+    SDL_Surface* textSurface = TTF_RenderText_Blended(font, countText, white);
+    if (textSurface) {
+        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+        if (textTexture) {
+            SDL_Rect textRect = {
+                buttonRect2.x + buttonRect2.w/2 - textSurface->w/2,
+                buttonRect2.y + buttonRect2.h + 5,
+                textSurface->w,
+                textSurface->h
+            };
+            SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+            SDL_DestroyTexture(textTexture);
+        }
+        SDL_FreeSurface(textSurface);
+    }
+}
 
 
 int main() {
@@ -145,7 +336,7 @@ int main() {
     SDL_JoystickEventState(SDL_IGNORE);
     //Button 1 test
     SDL_Rect buttonRect1 = {2, 2, 365, 58 };
-    SDL_Rect buttonRect2 = {300, 300, 60, 60 };
+    SDL_Rect buttonRect2 = {440, 20, 150, 98 };
     //SDL_Color normal = { 255, 255, 255, 0 };    // Abuton transparent
     //SDL_Color hover = { 255, 99, 71, 0 };    // semi-transparent
     setenv("SDL_VIDEODRIVER", "x11", 1);
@@ -196,8 +387,9 @@ int main() {
     // Încărcare imagine
     SDL_Surface *button_image=IMG_Load("assets/wheat_after.png"); 
     SDL_Texture *buttonTexture= SDL_CreateTextureFromSurface(renderer,button_image);
-    
-    SDL_Surface *image = IMG_Load("assets/grass_background_v1.jpg");
+    SDL_Surface *button_image_factory=IMG_Load("assets/bread_factory.png");
+    SDL_Texture *buttonTextureFactory=SDL_CreateTextureFromSurface(renderer,button_image_factory);
+    SDL_Surface *image = IMG_Load("assets/grass_background_v2.jpg");
     if (!image) {
         printf("Eroare încărcare imagine: %s\n", IMG_GetError());
     } else {
@@ -205,38 +397,60 @@ int main() {
        
         SDL_FreeSurface(image);
 
+        //setup pentru input text!!!
+        char inputText[256] = "";
+        bool inputActive = true;
+        SDL_Rect inputBox = { 100, 100, 300, 50 }; // x, y, width, height
+        SDL_StartTextInput();
+
+
+
         // Buclă principală
+        bool show_modal=false;
+        bool show_modal_factory = false;
         int running = 1;
         SDL_Event event;
-
         while (running) {
-            // Get mouse state once per frame
-        int mouseX, mouseY;
+        int mouseX, mouseY;    
         Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
-    
-            while (SDL_PollEvent(&event)) {
-                if (event.type == SDL_QUIT) {
-                    running = 0;
-                }
-            }
-    
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = 0;
+            } 
+            
+        }
+        
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, NULL, NULL);
-    
-        // Draw button and check click
-    
-
-        // if (drawButton(renderer, buttonTexture, NULL, buttonRect1, mouseX, mouseY, mouseState)) {
-        //     printf(" Buton apăsat!\n");
-        //         SDL_Delay(64);  
-        //         if (drawButton(renderer, buttonTexture, buttonTexture, buttonRect1, mouseX, mouseY, mouseState))
-        //         {
-        //             printf("planmtat");
-        //         }
-        //  }
-        if (handleButtonWithCondition(renderer, NULL, buttonTexture, buttonTexture, buttonRect1, mouseX, mouseY, mouseState, grau_e_copt)) {
-            printf("Butonul a fost apăsat și condiția e %s!\n", grau_e_copt ? "adevărată" : "falsă");
+        // zona pentru input scris box name
+        // if (inputActive) {
+        //     drawTextInputBox(renderer, title_font, inputText, inputBox);
+        // }
+        
+        //zona pentru modal grauu
+        if (!show_modal) { // Only clickable if modal is NOT open
+            if (handleButtonWithCondition(renderer, NULL, buttonTexture, buttonTexture, buttonRect1, mouseX, mouseY, mouseState, grau_e_copt)) {
+                show_modal = true;   // <<<<<< OPEN MODAL
+                printf("Butonul a fost apăsat și condiția e %s!\n", grau_e_copt ? "adevărată" : "falsă");
+            }
         }
+
+        if (show_modal) {
+            render_modal(renderer, &show_modal, title_font);  // <<<<<< CALL IT CORRECTLY
+        }
+
+        //for factory
+        if (!show_modal_factory) { // Only clickable if modal is NOT open
+            if (handleButtonWithCondition(renderer, NULL, buttonTextureFactory, buttonTextureFactory, buttonRect2, mouseX, mouseY, mouseState, bread_factory)) {
+                show_modal_factory = true;   // <<<<<< OPEN MODAL
+                printf("Butonul a fost apăsat și condiția e %s!\n", bread_factory ? "adevărată" : "falsă");
+            }
+        }
+
+        if (show_modal_factory) {
+            render_modal_factory(renderer, &show_modal_factory, title_font);  // <<<<<< CALL IT CORRECTLY
+        }
+       
         
     
     SDL_RenderPresent(renderer);
