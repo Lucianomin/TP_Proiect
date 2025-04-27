@@ -297,14 +297,37 @@ void render_modal_factory(SDL_Renderer* renderer, bool* show_modal, TTF_Font* fo
     
     // Draw button
     if (wheat_texture && drawButton(renderer, wheat_texture_hover, wheat_texture, buttonRect2, mx, my, mouseState)) {
-        for (int i = 0; i < MAX_FACTORY; i++) {
-            if (!factoryUsed[i]) {
-                factoryUsed[i] = true;
-                printf("Paine pusa la copt %d!\n", i);
-                break;
+        // Count available planted crops
+        int available_crops = 0;
+        for (int i = 0; i < MAX_CROPS; i++) {
+            if (cropPlanted[i]) {
+                available_crops++;
             }
         }
+    
+        // Check if there are at least 2 crops
+        if (available_crops >= 2) {
+            for (int i = 0; i < MAX_FACTORY; i++) {
+                if (!factoryUsed[i]) {
+                    factoryUsed[i] = true;
+                    printf("Paine pusa la copt %d!\n", i);
+    
+                    // Consume (set to false) 2 wheat crops
+                    int crops_consumed = 0;
+                    for (int j = 0; j < MAX_CROPS && crops_consumed < 2; j++) {
+                        if (cropPlanted[j]) {
+                            cropPlanted[j] = false;
+                            crops_consumed++;
+                        }
+                    }
+                    break; // only bake one bread at a time
+                }
+            }
+        } else {
+            printf("Nu ai destul grau pentru a coace paine!\n");
+        }
     }
+    
     
     // Count active factories
     int factory_count = 0;
@@ -334,6 +357,194 @@ void render_modal_factory(SDL_Renderer* renderer, bool* show_modal, TTF_Font* fo
         SDL_FreeSurface(textSurface);
     }
 }
+
+void render_modal_barn(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
+    // Load textures ONCE at program start, not here
+    static SDL_Texture* wheat_texture = NULL;
+    static SDL_Texture* corn_texture = NULL;
+    static SDL_Texture* corn_texture_hover = NULL;
+    static bool textures_loaded = false;
+    
+    if (!textures_loaded) {
+        SDL_Surface* wheat_image_hover = IMG_Load("assets/bread_hover.png");
+        if (!wheat_image_hover) {
+            printf("Failed to load bread_hover.png: %s\n", IMG_GetError());
+            return;
+        }
+        
+        SDL_FreeSurface(wheat_image_hover);
+
+        SDL_Surface* wheat_image = IMG_Load("assets/bread.png");
+        if (!wheat_image) {
+            printf("Failed to load bread.png: %s\n", IMG_GetError());
+            return;
+        }
+        wheat_texture = SDL_CreateTextureFromSurface(renderer, wheat_image);
+        SDL_FreeSurface(wheat_image);
+
+        SDL_Surface* corn_image_hover = IMG_Load("assets/wheat.png"); // <-- new
+        if (!corn_image_hover) {
+            printf("Failed to load corn_hover.png: %s\n", IMG_GetError());
+            return;
+        }
+        corn_texture_hover = SDL_CreateTextureFromSurface(renderer, corn_image_hover);
+        SDL_FreeSurface(corn_image_hover);
+
+        SDL_Surface* corn_image = IMG_Load("assets/wheat.png"); // <-- new
+        if (!corn_image) {
+            printf("Failed to load wheat.png: %s\n", IMG_GetError());
+            return;
+        }
+        corn_texture = SDL_CreateTextureFromSurface(renderer, corn_image);
+        SDL_FreeSurface(corn_image);
+
+        textures_loaded = true;
+    }
+
+    // Semi-transparent overlay
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
+    SDL_RenderFillRect(renderer, NULL);
+    
+    // Modal box
+    SDL_Rect modal = {WINDOW_W/2-200, WINDOW_H/2-150, 400, 300};
+    SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
+    SDL_RenderFillRect(renderer, &modal);
+    
+    // Title bar
+    SDL_Rect title_bar = {modal.x, modal.y, modal.w, 40};
+    SDL_SetRenderDrawColor(renderer, 70, 70, 80, 255);
+    SDL_RenderFillRect(renderer, &title_bar);
+
+    // Title text
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Surface* title_surface = TTF_RenderText_Blended(font, "Choose what to bake:", white);
+    if (!title_surface) {
+        printf("Failed to render title text: %s\n", TTF_GetError());
+        return;
+    }
+    
+    SDL_Texture* title_texture = SDL_CreateTextureFromSurface(renderer, title_surface);
+    if (!title_texture) {
+        printf("Failed to create title texture: %s\n", SDL_GetError());
+        SDL_FreeSurface(title_surface);
+        return;
+    }
+    
+    SDL_Rect title_rect = {
+        modal.x + 15,
+        modal.y + (title_bar.h - title_surface->h)/2,
+        title_surface->w,
+        title_surface->h
+    };
+    SDL_RenderCopy(renderer, title_texture, NULL, &title_rect);
+    
+    SDL_FreeSurface(title_surface);
+    SDL_DestroyTexture(title_texture);
+    
+    // Close button
+    SDL_Rect close_btn = {modal.x + modal.w - 35, modal.y + 10, 20, 20};
+    int mx, my;
+    Uint32 mouseState = SDL_GetMouseState(&mx, &my); 
+    bool hovered = SDL_PointInRect(&(SDL_Point){mx, my}, &close_btn);
+
+    SDL_SetRenderDrawColor(renderer, 
+                          hovered ? 220 : 255,
+                          hovered ? 80 : 100,
+                          100,
+                          255);
+    SDL_RenderFillRect(renderer, &close_btn);
+    
+    SDL_SetRenderDrawColor(renderer, 180, 60, 60, 255);
+    SDL_RenderDrawRect(renderer, &close_btn);
+    
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDrawLine(renderer, 
+                      close_btn.x + 5, close_btn.y + 5,
+                      close_btn.x + close_btn.w - 5, close_btn.y + close_btn.h - 5);
+    SDL_RenderDrawLine(renderer,
+                      close_btn.x + close_btn.w - 5, close_btn.y + 5,
+                      close_btn.x + 5, close_btn.y + close_btn.h - 5);
+
+    if (hovered && SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) {
+        *show_modal = false;
+    }
+
+    // Content area
+    SDL_Rect content_area = {modal.x, modal.y + title_bar.h, modal.w, modal.h - title_bar.h};
+    SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
+    SDL_RenderFillRect(renderer, &content_area);
+
+    // Buttons
+    SDL_Rect buttonRect2 = {modal.x, modal.y - title_bar.h + 90, 60, 60};
+    SDL_Rect buttonRect3 = {modal.x + 70, modal.y - title_bar.h + 90, 60, 60}; // Little spacing between buttons
+
+    // First Button (Bread/Wheat)
+    drawButton(renderer, wheat_texture, wheat_texture, buttonRect2, mx, my, mouseState);
+    
+
+    // Second Button (Corn/Other)
+    drawButton(renderer, corn_texture_hover, corn_texture, buttonRect3, mx, my, mouseState);
+  
+
+    // Count active factories
+     int factory_count = 0;
+    for (int i = 0; i < MAX_FACTORY; i++) {
+        if (factoryUsed[i]) {
+            factory_count++;
+        }
+    }
+   
+
+    // Render count text under first button
+    char countText[20];
+    snprintf(countText, sizeof(countText), "x %d", factory_count);
+    
+    SDL_Surface* textSurface = TTF_RenderText_Blended(font, countText, white);
+    if (textSurface) {
+        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+        if (textTexture) {
+            SDL_Rect textRect = {
+                buttonRect2.x + buttonRect2.w/2 - textSurface->w/2,
+                buttonRect2.y + buttonRect2.h + 5,
+                textSurface->w,
+                textSurface->h
+            };
+            SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+            SDL_DestroyTexture(textTexture);
+        }
+        SDL_FreeSurface(textSurface);
+    } 
+    
+    int crop_planted=0;
+    for (int i = 0; i < MAX_CROPS; i++) {
+        if (cropPlanted[i]) {
+            crop_planted++;
+        }
+    }
+    // Render count text under second button (crops planted count)
+    char cropCountText[20];
+    snprintf(cropCountText, sizeof(cropCountText), "x %d", crop_planted);
+
+    SDL_Surface* textSurface2 = TTF_RenderText_Blended(font, cropCountText, white);
+    if (textSurface2) {
+        SDL_Texture* textTexture2 = SDL_CreateTextureFromSurface(renderer, textSurface2);
+        if (textTexture2) {
+            SDL_Rect textRect2 = {
+                buttonRect3.x + buttonRect3.w/2 - textSurface2->w/2,
+                buttonRect3.y + buttonRect3.h + 5,
+                textSurface2->w,
+                textSurface2->h
+            };
+            SDL_RenderCopy(renderer, textTexture2, NULL, &textRect2);
+            SDL_DestroyTexture(textTexture2);
+        }
+        SDL_FreeSurface(textSurface2);
+    }
+}
+
+
+
 // Function to handle text input events
 void handleTextInput(SDL_Event* event) {
     if (!inputActive) return;
@@ -518,7 +729,7 @@ int main() {
                 }
         }
         if (show_modal_barn) {
-            render_modal(renderer, &show_modal_barn, title_font);  // <<<<<< CALL IT CORRECTLY
+            render_modal_barn(renderer, &show_modal_barn, title_font);  // <<<<<< CALL IT CORRECTLY
         }
 
 
@@ -532,7 +743,7 @@ int main() {
         }
 
         if (show_modal) {
-            render_modal_barn(renderer, &show_modal, title_font);  // <<<<<< CALL IT CORRECTLY
+            render_modal(renderer, &show_modal, title_font);  // <<<<<< CALL IT CORRECTLY
         }
 
         //for factory
