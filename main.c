@@ -18,7 +18,13 @@ bool cropPlanted[MAX_CROPS];
 bool factoryUsed[MAX_FACTORY];
 bool grau_e_copt = true;
 bool bread_factory = true;
+bool barn_open = true;
 
+
+//input name
+char townName[32] = ""; // Buffer for town name
+bool inputActive = true; // Start with input active
+SDL_Rect inputBox = {60, 628, 60, 30}; // Position and size of input box
 
 
 int drawButton(SDL_Renderer *renderer, SDL_Texture *button_texture, SDL_Texture *button_texture_2,SDL_Rect button, int mouseX, int mouseY, Uint32 mouseState) {
@@ -328,6 +334,77 @@ void render_modal_factory(SDL_Renderer* renderer, bool* show_modal, TTF_Font* fo
         SDL_FreeSurface(textSurface);
     }
 }
+// Function to handle text input events
+void handleTextInput(SDL_Event* event) {
+    if (!inputActive) return;
+
+    if (event->type == SDL_TEXTINPUT) {
+        // Add character to town name if there's space
+        if (strlen(townName) < sizeof(townName) - 1) {
+            strcat(townName, event->text.text);
+        }
+    }
+    else if (event->type == SDL_KEYDOWN) {
+        if (event->key.keysym.sym == SDLK_BACKSPACE && strlen(townName) > 0) {
+            // Remove last character
+            townName[strlen(townName) - 1] = '\0';
+        }
+        else if (event->key.keysym.sym == SDLK_RETURN) {
+            // Start game with entered town name
+            if (strlen(townName) > 0) {
+                inputActive = false;
+                
+            }
+        }
+    }
+}
+
+// Modified draw function with cursor
+void drawTextInputBox(SDL_Renderer* renderer, TTF_Font* font) {
+    // Draw background
+    SDL_SetRenderDrawColor(renderer, 102, 1, 19, 0);
+    SDL_RenderFillRect(renderer, &inputBox);
+
+    // Draw border
+    //SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    //SDL_RenderDrawRect(renderer, &inputBox);
+
+    // Render text
+    SDL_Color textColor = {255, 255, 255, 255};
+    const char* displayText = strlen(townName) > 0 ? townName : "Name...";
+    SDL_Surface* textSurface = TTF_RenderText_Blended(font, displayText, textColor);
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+
+    SDL_Rect textRect = {
+        inputBox.x + 5,
+        inputBox.y + (inputBox.h - textSurface->h) / 2,
+        textSurface->w,
+        textSurface->h
+    };
+
+    // Make sure text doesn't overflow the box
+    if (textRect.w > inputBox.w - 10) {
+        textRect.w = inputBox.w - 10;
+    }
+
+    SDL_RenderCopyEx(renderer, textTexture, NULL, &textRect, -16.0, NULL, SDL_FLIP_NONE);
+
+    // Draw blinking cursor if active
+    if (inputActive && (SDL_GetTicks() / 500) % 2 == 0) {
+        SDL_Rect cursorRect = {
+            inputBox.x + 5 + (strlen(townName) > 0 ? textRect.w : 0),
+            inputBox.y + 5,
+            2,
+            inputBox.h - 10
+        };
+        SDL_RenderFillRect(renderer, &cursorRect);
+    }
+
+    SDL_FreeSurface(textSurface);
+    SDL_DestroyTexture(textTexture);
+}
+
+
 
 
 int main() {
@@ -337,6 +414,7 @@ int main() {
     //Button 1 test
     SDL_Rect buttonRect1 = {2, 2, 365, 58 };
     SDL_Rect buttonRect2 = {440, 20, 150, 98 };
+    SDL_Rect buttonRect3 = {400, 600, 150, 98};
     //SDL_Color normal = { 255, 255, 255, 0 };    // Abuton transparent
     //SDL_Color hover = { 255, 99, 71, 0 };    // semi-transparent
     setenv("SDL_VIDEODRIVER", "x11", 1);
@@ -408,6 +486,7 @@ int main() {
         // Buclă principală
         bool show_modal=false;
         bool show_modal_factory = false;
+        bool show_modal_barn = false;
         int running = 1;
         SDL_Event event;
         while (running) {
@@ -417,16 +496,33 @@ int main() {
             if (event.type == SDL_QUIT) {
                 running = 0;
             } 
-            
+            handleTextInput(&event);
         }
         
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, NULL, NULL);
+       
         // zona pentru input scris box name
-        // if (inputActive) {
-        //     drawTextInputBox(renderer, title_font, inputText, inputBox);
-        // }
+        if (inputActive) {
+        drawTextInputBox(renderer, title_font);
+        }
         
+        //buton BARN
+        if(!show_modal_barn)
+        {
+            if (handleButtonWithCondition(renderer, NULL, buttonTextureFactory, buttonTextureFactory, buttonRect3, mouseX, mouseY, mouseState, barn_open))
+                {
+                    show_modal_barn=true;
+                    printf("Butonul a fost apăsat și condiția e!\n");
+          
+                }
+        }
+        if (show_modal_barn) {
+            render_modal(renderer, &show_modal_barn, title_font);  // <<<<<< CALL IT CORRECTLY
+        }
+
+
+
         //zona pentru modal grauu
         if (!show_modal) { // Only clickable if modal is NOT open
             if (handleButtonWithCondition(renderer, NULL, buttonTexture, buttonTexture, buttonRect1, mouseX, mouseY, mouseState, grau_e_copt)) {
@@ -436,7 +532,7 @@ int main() {
         }
 
         if (show_modal) {
-            render_modal(renderer, &show_modal, title_font);  // <<<<<< CALL IT CORRECTLY
+            render_modal_barn(renderer, &show_modal, title_font);  // <<<<<< CALL IT CORRECTLY
         }
 
         //for factory
