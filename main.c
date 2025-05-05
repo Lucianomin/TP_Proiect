@@ -625,7 +625,8 @@ int main() {
     //Button 1 test
     SDL_Rect buttonRect1 = {2, 2, 365, 58 };
     SDL_Rect buttonRect2 = {440, 20, 150, 98 };
-    SDL_Rect buttonRect3 = {400, 600, 150, 98};
+    SDL_Rect buttonRect3 = {280, 560, 170, 108};
+    SDL_Rect buttonRect4 = {2, 70, 365, 60};
     //SDL_Color normal = { 255, 255, 255, 0 };    // Abuton transparent
     //SDL_Color hover = { 255, 99, 71, 0 };    // semi-transparent
     
@@ -737,6 +738,12 @@ int main() {
         //zona pentru modal grauu
         if (!show_modal) { // Only clickable if modal is NOT open
             if (handleButtonWithCondition(renderer, NULL, buttonTexture, buttonTexture, buttonRect1, mouseX, mouseY, mouseState, grau_e_copt)) {
+                show_modal = true;   // <<<<<< OPEN MODAL
+                printf("Butonul a fost apăsat și condiția e %s!\n", grau_e_copt ? "adevărată" : "falsă");
+            }
+        }
+        if (!show_modal) { // Only clickable if modal is NOT open
+            if (handleButtonWithCondition(renderer, NULL, buttonTexture, buttonTexture, buttonRect4, mouseX, mouseY, mouseState, grau_e_copt)) {
                 show_modal = true;   // <<<<<< OPEN MODAL
                 printf("Butonul a fost apăsat și condiția e %s!\n", grau_e_copt ? "adevărată" : "falsă");
             }
