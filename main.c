@@ -628,7 +628,7 @@ int main() {
     SDL_Rect buttonRect3 = {400, 600, 150, 98};
     //SDL_Color normal = { 255, 255, 255, 0 };    // Abuton transparent
     //SDL_Color hover = { 255, 99, 71, 0 };    // semi-transparent
-    setenv("SDL_VIDEODRIVER", "x11", 1);
+    
    
     // Inițializare SDL
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
