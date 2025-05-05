@@ -31,6 +31,203 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
+// include: /tmp/tmpfckx4g4o.js
+
+  Module['expectedDataFileDownloads'] ??= 0;
+  Module['expectedDataFileDownloads']++;
+  (() => {
+    // Do not attempt to redownload the virtual filesystem data when in a pthread or a Wasm Worker context.
+    var isPthread = typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD;
+    var isWasmWorker = typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER;
+    if (isPthread || isWasmWorker) return;
+    var isNode = typeof process === 'object' && typeof process.versions === 'object' && typeof process.versions.node === 'string';
+    function loadPackage(metadata) {
+
+      var PACKAGE_PATH = '';
+      if (typeof window === 'object') {
+        PACKAGE_PATH = window['encodeURIComponent'](window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) + '/');
+      } else if (typeof process === 'undefined' && typeof location !== 'undefined') {
+        // web worker
+        PACKAGE_PATH = encodeURIComponent(location.pathname.substring(0, location.pathname.lastIndexOf('/')) + '/');
+      }
+      var PACKAGE_NAME = 'index.data';
+      var REMOTE_PACKAGE_BASE = 'index.data';
+      var REMOTE_PACKAGE_NAME = Module['locateFile'] ? Module['locateFile'](REMOTE_PACKAGE_BASE, '') : REMOTE_PACKAGE_BASE;
+var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
+
+      function fetchRemotePackage(packageName, packageSize, callback, errback) {
+        if (isNode) {
+          require('fs').readFile(packageName, (err, contents) => {
+            if (err) {
+              errback(err);
+            } else {
+              callback(contents.buffer);
+            }
+          });
+          return;
+        }
+        Module['dataFileDownloads'] ??= {};
+        fetch(packageName)
+          .catch((cause) => Promise.reject(new Error(`Network Error: ${packageName}`, {cause}))) // If fetch fails, rewrite the error to include the failing URL & the cause.
+          .then((response) => {
+            if (!response.ok) {
+              return Promise.reject(new Error(`${response.status}: ${response.url}`));
+            }
+
+            if (!response.body && response.arrayBuffer) { // If we're using the polyfill, readers won't be available...
+              return response.arrayBuffer().then(callback);
+            }
+
+            const reader = response.body.getReader();
+            const iterate = () => reader.read().then(handleChunk).catch((cause) => {
+              return Promise.reject(new Error(`Unexpected error while handling : ${response.url} ${cause}`, {cause}));
+            });
+
+            const chunks = [];
+            const headers = response.headers;
+            const total = Number(headers.get('Content-Length') ?? packageSize);
+            let loaded = 0;
+
+            const handleChunk = ({done, value}) => {
+              if (!done) {
+                chunks.push(value);
+                loaded += value.length;
+                Module['dataFileDownloads'][packageName] = {loaded, total};
+
+                let totalLoaded = 0;
+                let totalSize = 0;
+
+                for (const download of Object.values(Module['dataFileDownloads'])) {
+                  totalLoaded += download.loaded;
+                  totalSize += download.total;
+                }
+
+                Module['setStatus']?.(`Downloading data... (${totalLoaded}/${totalSize})`);
+                return iterate();
+              } else {
+                const packageData = new Uint8Array(chunks.map((c) => c.length).reduce((a, b) => a + b, 0));
+                let offset = 0;
+                for (const chunk of chunks) {
+                  packageData.set(chunk, offset);
+                  offset += chunk.length;
+                }
+                callback(packageData.buffer);
+              }
+            };
+
+            Module['setStatus']?.('Downloading data...');
+            return iterate();
+          });
+      };
+
+      function handleError(error) {
+        console.error('package error:', error);
+      };
+
+      var fetchedCallback = null;
+      var fetched = Module['getPreloadedPackage'] ? Module['getPreloadedPackage'](REMOTE_PACKAGE_NAME, REMOTE_PACKAGE_SIZE) : null;
+
+      if (!fetched) fetchRemotePackage(REMOTE_PACKAGE_NAME, REMOTE_PACKAGE_SIZE, (data) => {
+        if (fetchedCallback) {
+          fetchedCallback(data);
+          fetchedCallback = null;
+        } else {
+          fetched = data;
+        }
+      }, handleError);
+
+    function runWithFS(Module) {
+
+      function assert(check, msg) {
+        if (!check) throw msg + new Error().stack;
+      }
+Module['FS_createPath']("/", "assets", true, true);
+Module['FS_createPath']("/assets", "fonts", true, true);
+
+      /** @constructor */
+      function DataRequest(start, end, audio) {
+        this.start = start;
+        this.end = end;
+        this.audio = audio;
+      }
+      DataRequest.prototype = {
+        requests: {},
+        open: function(mode, name) {
+          this.name = name;
+          this.requests[name] = this;
+          Module['addRunDependency'](`fp ${this.name}`);
+        },
+        send: function() {},
+        onload: function() {
+          var byteArray = this.byteArray.subarray(this.start, this.end);
+          this.finish(byteArray);
+        },
+        finish: function(byteArray) {
+          var that = this;
+          // canOwn this data in the filesystem, it is a slide into the heap that will never change
+          Module['FS_createDataFile'](this.name, null, byteArray, true, true, true);
+          Module['removeRunDependency'](`fp ${that.name}`);
+          this.requests[this.name] = null;
+        }
+      };
+
+      var files = metadata['files'];
+      for (var i = 0; i < files.length; ++i) {
+        new DataRequest(files[i]['start'], files[i]['end'], files[i]['audio'] || 0).open('GET', files[i]['filename']);
+      }
+
+      function processPackageData(arrayBuffer) {
+        assert(arrayBuffer, 'Loading data file failed.');
+        assert(arrayBuffer.constructor.name === ArrayBuffer.name, 'bad input to processPackageData');
+        var byteArray = new Uint8Array(arrayBuffer);
+        var curr;
+        // Reuse the bytearray from the XHR as the source for file reads.
+          DataRequest.prototype.byteArray = byteArray;
+          var files = metadata['files'];
+          for (var i = 0; i < files.length; ++i) {
+            DataRequest.prototype.requests[files[i].filename].onload();
+          }          Module['removeRunDependency']('datafile_index.data');
+
+      };
+      Module['addRunDependency']('datafile_index.data');
+
+      Module['preloadResults'] ??= {};
+
+      Module['preloadResults'][PACKAGE_NAME] = {fromCache: false};
+      if (fetched) {
+        processPackageData(fetched);
+        fetched = null;
+      } else {
+        fetchedCallback = processPackageData;
+      }
+
+    }
+    if (Module['calledRun']) {
+      runWithFS(Module);
+    } else {
+      (Module['preRun'] ??= []).push(runWithFS); // FS is not initialized yet, wait for it
+    }
+
+    }
+    loadPackage({"files": [{"filename": "/assets/barn.png", "start": 0, "end": 98731}, {"filename": "/assets/bread.png", "start": 98731, "end": 147875}, {"filename": "/assets/bread_factory.png", "start": 147875, "end": 545711}, {"filename": "/assets/bread_hover.png", "start": 545711, "end": 2228079}, {"filename": "/assets/fonts/Arial.ttf", "start": 2228079, "end": 2503651}, {"filename": "/assets/grass_background.jpg", "start": 2503651, "end": 2653993}, {"filename": "/assets/grass_background_v1.jpg", "start": 2653993, "end": 2865798}, {"filename": "/assets/grass_background_v2.jpg", "start": 2865798, "end": 3952282}, {"filename": "/assets/images.jpeg", "start": 3952282, "end": 3961236}, {"filename": "/assets/wheat.png", "start": 3961236, "end": 3966117}, {"filename": "/assets/wheat_after.png", "start": 3966117, "end": 3980428}], "remote_package_size": 3980428});
+
+  })();
+
+// end include: /tmp/tmpfckx4g4o.js
+// include: /tmp/tmp9n2hent4.js
+
+    // All the pre-js content up to here must remain later on, we need to run
+    // it.
+    if (Module['$ww'] || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
+    var necessaryPreJSTasks = Module['preRun'].slice();
+  // end include: /tmp/tmp9n2hent4.js
+// include: /tmp/tmpm122v_zu.js
+
+    if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
+    necessaryPreJSTasks.forEach((task) => {
+      if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
+    });
+  // end include: /tmp/tmpm122v_zu.js
 
 
 var arguments_ = [];
@@ -4709,11 +4906,6 @@ async function createWasm() {
       return (ctx.getSupportedExtensions() || []).filter(ext => supportedExtensions.includes(ext));
     };
   
-  var registerPreMainLoop = (f) => {
-      // Does nothing unless $MainLoop is included/used.
-      typeof MainLoop != 'undefined' && MainLoop.preMainLoop.push(f);
-    };
-  
   
   var GL = {
   counter:1,
@@ -4728,8 +4920,6 @@ async function createWasm() {
   offscreenCanvases:{
   },
   queries:[],
-  byteSizeByTypeRoot:5120,
-  byteSizeByType:[1,1,2,2,4,4,4,2,3,4,8],
   stringCache:{
   },
   unpackAlignment:4,
@@ -4743,11 +4933,6 @@ async function createWasm() {
         var ret = GL.counter++;
         for (var i = table.length; i < ret; i++) {
           table[i] = null;
-        }
-        // Skip over any non-null elements that might have been created by
-        // glBindBuffer.
-        while (table[ret]) {
-          ret = GL.counter++;
         }
         return ret;
       },
@@ -4765,103 +4950,6 @@ async function createWasm() {
           HEAP32[(((buffers)+(i*4))>>2)] = id;
         }
       },
-  MAX_TEMP_BUFFER_SIZE:2097152,
-  numTempVertexBuffersPerSize:64,
-  log2ceilLookup:(i) => 32 - Math.clz32(i === 0 ? 0 : i - 1),
-  generateTempBuffers:(quads, context) => {
-        var largestIndex = GL.log2ceilLookup(GL.MAX_TEMP_BUFFER_SIZE);
-        context.tempVertexBufferCounters1 = [];
-        context.tempVertexBufferCounters2 = [];
-        context.tempVertexBufferCounters1.length = context.tempVertexBufferCounters2.length = largestIndex+1;
-        context.tempVertexBuffers1 = [];
-        context.tempVertexBuffers2 = [];
-        context.tempVertexBuffers1.length = context.tempVertexBuffers2.length = largestIndex+1;
-        context.tempIndexBuffers = [];
-        context.tempIndexBuffers.length = largestIndex+1;
-        for (var i = 0; i <= largestIndex; ++i) {
-          context.tempIndexBuffers[i] = null; // Created on-demand
-          context.tempVertexBufferCounters1[i] = context.tempVertexBufferCounters2[i] = 0;
-          var ringbufferLength = GL.numTempVertexBuffersPerSize;
-          context.tempVertexBuffers1[i] = [];
-          context.tempVertexBuffers2[i] = [];
-          var ringbuffer1 = context.tempVertexBuffers1[i];
-          var ringbuffer2 = context.tempVertexBuffers2[i];
-          ringbuffer1.length = ringbuffer2.length = ringbufferLength;
-          for (var j = 0; j < ringbufferLength; ++j) {
-            ringbuffer1[j] = ringbuffer2[j] = null; // Created on-demand
-          }
-        }
-  
-        if (quads) {
-          // GL_QUAD indexes can be precalculated
-          context.tempQuadIndexBuffer = GLctx.createBuffer();
-          context.GLctx.bindBuffer(0x8893 /*GL_ELEMENT_ARRAY_BUFFER*/, context.tempQuadIndexBuffer);
-          var numIndexes = GL.MAX_TEMP_BUFFER_SIZE >> 1;
-          var quadIndexes = new Uint16Array(numIndexes);
-          var i = 0, v = 0;
-          while (1) {
-            quadIndexes[i++] = v;
-            if (i >= numIndexes) break;
-            quadIndexes[i++] = v+1;
-            if (i >= numIndexes) break;
-            quadIndexes[i++] = v+2;
-            if (i >= numIndexes) break;
-            quadIndexes[i++] = v;
-            if (i >= numIndexes) break;
-            quadIndexes[i++] = v+2;
-            if (i >= numIndexes) break;
-            quadIndexes[i++] = v+3;
-            if (i >= numIndexes) break;
-            v += 4;
-          }
-          context.GLctx.bufferData(0x8893 /*GL_ELEMENT_ARRAY_BUFFER*/, quadIndexes, 0x88E4 /*GL_STATIC_DRAW*/);
-          context.GLctx.bindBuffer(0x8893 /*GL_ELEMENT_ARRAY_BUFFER*/, null);
-        }
-      },
-  getTempVertexBuffer:(sizeBytes) => {
-        var idx = GL.log2ceilLookup(sizeBytes);
-        var ringbuffer = GL.currentContext.tempVertexBuffers1[idx];
-        var nextFreeBufferIndex = GL.currentContext.tempVertexBufferCounters1[idx];
-        GL.currentContext.tempVertexBufferCounters1[idx] = (GL.currentContext.tempVertexBufferCounters1[idx]+1) & (GL.numTempVertexBuffersPerSize-1);
-        var vbo = ringbuffer[nextFreeBufferIndex];
-        if (vbo) {
-          return vbo;
-        }
-        var prevVBO = GLctx.getParameter(0x8894 /*GL_ARRAY_BUFFER_BINDING*/);
-        ringbuffer[nextFreeBufferIndex] = GLctx.createBuffer();
-        GLctx.bindBuffer(0x8892 /*GL_ARRAY_BUFFER*/, ringbuffer[nextFreeBufferIndex]);
-        GLctx.bufferData(0x8892 /*GL_ARRAY_BUFFER*/, 1 << idx, 0x88E8 /*GL_DYNAMIC_DRAW*/);
-        GLctx.bindBuffer(0x8892 /*GL_ARRAY_BUFFER*/, prevVBO);
-        return ringbuffer[nextFreeBufferIndex];
-      },
-  getTempIndexBuffer:(sizeBytes) => {
-        var idx = GL.log2ceilLookup(sizeBytes);
-        var ibo = GL.currentContext.tempIndexBuffers[idx];
-        if (ibo) {
-          return ibo;
-        }
-        var prevIBO = GLctx.getParameter(0x8895 /*ELEMENT_ARRAY_BUFFER_BINDING*/);
-        GL.currentContext.tempIndexBuffers[idx] = GLctx.createBuffer();
-        GLctx.bindBuffer(0x8893 /*GL_ELEMENT_ARRAY_BUFFER*/, GL.currentContext.tempIndexBuffers[idx]);
-        GLctx.bufferData(0x8893 /*GL_ELEMENT_ARRAY_BUFFER*/, 1 << idx, 0x88E8 /*GL_DYNAMIC_DRAW*/);
-        GLctx.bindBuffer(0x8893 /*GL_ELEMENT_ARRAY_BUFFER*/, prevIBO);
-        return GL.currentContext.tempIndexBuffers[idx];
-      },
-  newRenderingFrameStarted:() => {
-        if (!GL.currentContext) {
-          return;
-        }
-        var vb = GL.currentContext.tempVertexBuffers1;
-        GL.currentContext.tempVertexBuffers1 = GL.currentContext.tempVertexBuffers2;
-        GL.currentContext.tempVertexBuffers2 = vb;
-        vb = GL.currentContext.tempVertexBufferCounters1;
-        GL.currentContext.tempVertexBufferCounters1 = GL.currentContext.tempVertexBufferCounters2;
-        GL.currentContext.tempVertexBufferCounters2 = vb;
-        var largestIndex = GL.log2ceilLookup(GL.MAX_TEMP_BUFFER_SIZE);
-        for (var i = 0; i <= largestIndex; ++i) {
-          GL.currentContext.tempVertexBufferCounters1[i] = 0;
-        }
-      },
   getSource:(shader, count, string, length) => {
         var source = '';
         for (var i = 0; i < count; ++i) {
@@ -4869,39 +4957,6 @@ async function createWasm() {
           source += UTF8ToString(HEAPU32[(((string)+(i*4))>>2)], len);
         }
         return source;
-      },
-  calcBufLength:(size, type, stride, count) => {
-        if (stride > 0) {
-          return count * stride;  // XXXvlad this is not exactly correct I don't think
-        }
-        var typeSize = GL.byteSizeByType[type - GL.byteSizeByTypeRoot];
-        return size * typeSize * count;
-      },
-  usedTempBuffers:[],
-  preDrawHandleClientVertexAttribBindings:(count) => {
-        GL.resetBufferBinding = false;
-  
-        // TODO: initial pass to detect ranges we need to upload, might not need
-        // an upload per attrib
-        for (var i = 0; i < GL.currentContext.maxVertexAttribs; ++i) {
-          var cb = GL.currentContext.clientBuffers[i];
-          if (!cb.clientside || !cb.enabled) continue;
-  
-          GL.resetBufferBinding = true;
-  
-          var size = GL.calcBufLength(cb.size, cb.type, cb.stride, count);
-          var buf = GL.getTempVertexBuffer(size);
-          GLctx.bindBuffer(0x8892 /*GL_ARRAY_BUFFER*/, buf);
-          GLctx.bufferSubData(0x8892 /*GL_ARRAY_BUFFER*/,
-                                   0,
-                                   HEAPU8.subarray(cb.ptr, cb.ptr + size));
-          cb.vertexAttribPointerAdaptor.call(GLctx, i, cb.size, cb.type, cb.normalized, cb.stride, 0);
-        }
-      },
-  postDrawHandleClientVertexAttribBindings:() => {
-        if (GL.resetBufferBinding) {
-          GLctx.bindBuffer(0x8892 /*GL_ARRAY_BUFFER*/, GL.buffers[GLctx.currentArrayBufferBinding]);
-        }
       },
   createContext:(/** @type {HTMLCanvasElement} */ canvas, webGLContextAttributes) => {
   
@@ -4951,23 +5006,6 @@ async function createWasm() {
         if (typeof webGLContextAttributes.enableExtensionsByDefault == 'undefined' || webGLContextAttributes.enableExtensionsByDefault) {
           GL.initExtensions(context);
         }
-  
-        context.maxVertexAttribs = context.GLctx.getParameter(0x8869 /*GL_MAX_VERTEX_ATTRIBS*/);
-        context.clientBuffers = [];
-        for (var i = 0; i < context.maxVertexAttribs; i++) {
-          context.clientBuffers[i] = {
-            enabled: false,
-            clientside: false,
-            size: 0,
-            type: 0,
-            normalized: 0,
-            stride: 0,
-            ptr: 0,
-            vertexAttribPointerAdaptor: null,
-          };
-        }
-  
-        GL.generateTempBuffers(false, context);
   
         return handle;
       },
@@ -6272,19 +6310,6 @@ async function createWasm() {
 
   /** @suppress {duplicate } */
   var _glBindBuffer = (target, buffer) => {
-      // Calling glBindBuffer with an unknown buffer will implicitly create a
-      // new one.  Here we bypass `GL.counter` and directly using the ID passed
-      // in.
-      if (buffer && !GL.buffers[buffer]) {
-        var b = GLctx.createBuffer();
-        b.name = buffer;
-        GL.buffers[buffer] = b;
-      }
-      if (target == 0x8892 /*GL_ARRAY_BUFFER*/) {
-        GLctx.currentArrayBufferBinding = buffer;
-      } else if (target == 0x8893 /*GL_ELEMENT_ARRAY_BUFFER*/) {
-        GLctx.currentElementArrayBufferBinding = buffer;
-      }
   
       GLctx.bindBuffer(target, GL.buffers[buffer]);
     };
@@ -6314,8 +6339,6 @@ async function createWasm() {
   /** @suppress {duplicate } */
   var _glBindVertexArray = (vao) => {
       GLctx.bindVertexArray(GL.vaos[vao]);
-      var ibo = GLctx.getParameter(0x8895 /*ELEMENT_ARRAY_BUFFER_BINDING*/);
-      GLctx.currentElementArrayBufferBinding = ibo ? (ibo.name | 0) : 0;
     };
   /** @suppress {duplicate } */
   var _glBindVertexArrayOES = _glBindVertexArray;
@@ -6463,8 +6486,6 @@ async function createWasm() {
         buffer.name = 0;
         GL.buffers[id] = null;
   
-        if (id == GLctx.currentArrayBufferBinding) GLctx.currentArrayBufferBinding = 0;
-        if (id == GLctx.currentElementArrayBufferBinding) GLctx.currentElementArrayBufferBinding = 0;
       }
     };
   var _emscripten_glDeleteBuffers = _glDeleteBuffers;
@@ -6592,20 +6613,15 @@ async function createWasm() {
 
   /** @suppress {duplicate } */
   var _glDisableVertexAttribArray = (index) => {
-      var cb = GL.currentContext.clientBuffers[index];
-      cb.enabled = false;
       GLctx.disableVertexAttribArray(index);
     };
   var _emscripten_glDisableVertexAttribArray = _glDisableVertexAttribArray;
 
   /** @suppress {duplicate } */
   var _glDrawArrays = (mode, first, count) => {
-      // bind any client-side buffers
-      GL.preDrawHandleClientVertexAttribBindings(first + count);
   
       GLctx.drawArrays(mode, first, count);
   
-      GL.postDrawHandleClientVertexAttribBindings();
     };
   var _emscripten_glDrawArrays = _glDrawArrays;
 
@@ -6637,50 +6653,9 @@ async function createWasm() {
 
   /** @suppress {duplicate } */
   var _glDrawElements = (mode, count, type, indices) => {
-      var buf;
-      var vertexes = 0;
-      if (!GLctx.currentElementArrayBufferBinding) {
-        var size = GL.calcBufLength(1, type, 0, count);
-        buf = GL.getTempIndexBuffer(size);
-        GLctx.bindBuffer(0x8893 /*GL_ELEMENT_ARRAY_BUFFER*/, buf);
-        GLctx.bufferSubData(0x8893 /*GL_ELEMENT_ARRAY_BUFFER*/,
-                            0,
-                            HEAPU8.subarray(indices, indices + size));
-        
-        // Calculating vertex count if shader's attribute data is on client side
-        if (count > 0) {
-          for (var i = 0; i < GL.currentContext.maxVertexAttribs; ++i) {
-            var cb = GL.currentContext.clientBuffers[i];
-            if (cb.clientside && cb.enabled) {
-              let arrayClass;
-              switch(type) {
-                case 0x1401 /* GL_UNSIGNED_BYTE */: arrayClass = Uint8Array; break;
-                case 0x1403 /* GL_UNSIGNED_SHORT */: arrayClass = Uint16Array; break;
-                default:
-                  GL.recordError(0x502 /* GL_INVALID_OPERATION */);
-                  return;
-              }
-  
-              vertexes = new arrayClass(HEAPU8.buffer, indices, count).reduce((max, current) => Math.max(max, current)) + 1;
-              break;
-            }
-          }
-        }
-  
-        // the index is now 0
-        indices = 0;
-      }
-  
-      // bind any client-side buffers
-      GL.preDrawHandleClientVertexAttribBindings(vertexes);
   
       GLctx.drawElements(mode, count, type, indices);
   
-      GL.postDrawHandleClientVertexAttribBindings(count);
-  
-      if (!GLctx.currentElementArrayBufferBinding) {
-        GLctx.bindBuffer(0x8893 /*GL_ELEMENT_ARRAY_BUFFER*/, null);
-      }
     };
   var _emscripten_glDrawElements = _glDrawElements;
 
@@ -6699,8 +6674,6 @@ async function createWasm() {
 
   /** @suppress {duplicate } */
   var _glEnableVertexAttribArray = (index) => {
-      var cb = GL.currentContext.clientBuffers[index];
-      cb.enabled = true;
       GLctx.enableVertexAttribArray(index);
     };
   var _emscripten_glEnableVertexAttribArray = _glEnableVertexAttribArray;
@@ -7455,9 +7428,6 @@ async function createWasm() {
         GL.recordError(0x501 /* GL_INVALID_VALUE */);
         return;
       }
-      if (GL.currentContext.clientBuffers[index].enabled) {
-        err("glGetVertexAttribPointer on client-side array: not supported, bad data returned");
-      }
       HEAP32[((pointer)>>2)] = GLctx.getVertexAttribOffset(index, pname);
     };
   var _emscripten_glGetVertexAttribPointerv = _glGetVertexAttribPointerv;
@@ -7470,9 +7440,6 @@ async function createWasm() {
         // null, issue a GL error to notify user about it.
         GL.recordError(0x501 /* GL_INVALID_VALUE */);
         return;
-      }
-      if (GL.currentContext.clientBuffers[index].enabled) {
-        err("glGetVertexAttrib*v on client-side array: not supported, bad data returned");
       }
       var data = GLctx.getVertexAttrib(index, pname);
       if (pname == 0x889F/*VERTEX_ATTRIB_ARRAY_BUFFER_BINDING*/) {
@@ -8195,20 +8162,6 @@ async function createWasm() {
 
   /** @suppress {duplicate } */
   var _glVertexAttribPointer = (index, size, type, normalized, stride, ptr) => {
-      var cb = GL.currentContext.clientBuffers[index];
-      if (!GLctx.currentArrayBufferBinding) {
-        cb.size = size;
-        cb.type = type;
-        cb.normalized = normalized;
-        cb.stride = stride;
-        cb.ptr = ptr;
-        cb.clientside = true;
-        cb.vertexAttribPointerAdaptor = function(index, size, type, normalized, stride, ptr) {
-          this.vertexAttribPointer(index, size, type, normalized, stride, ptr);
-        };
-        return;
-      }
-      cb.clientside = false;
       GLctx.vertexAttribPointer(index, size, type, !!normalized, stride, ptr);
     };
   var _emscripten_glVertexAttribPointer = _glVertexAttribPointer;
@@ -9109,6 +9062,17 @@ async function createWasm() {
 
 
 
+
+  var FS_createPath = (...args) => FS.createPath(...args);
+
+
+
+  var FS_unlink = (...args) => FS.unlink(...args);
+
+  var FS_createLazyFile = (...args) => FS.createLazyFile(...args);
+
+  var FS_createDevice = (...args) => FS.createDevice(...args);
+
   FS.createPreloadedFile = FS_createPreloadedFile;
   FS.staticInit();;
 
@@ -9118,11 +9082,6 @@ async function createWasm() {
       Module['setCanvasSize'] = Browser.setCanvasSize;
       Module['getUserMedia'] = Browser.getUserMedia;
       Module['createContext'] = Browser.createContext;
-    ;
-
-      // Signal GL rendering layer that processing of a new frame is about to
-      // start. This helps it optimize VBO double-buffering and reduce GPU stalls.
-      registerPreMainLoop(() => GL.newRenderingFrameStarted());
     ;
 
       Module['requestAnimationFrame'] = MainLoop.requestAnimationFrame;
@@ -9180,6 +9139,14 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
 }
 
 // Begin runtime exports
+  Module['addRunDependency'] = addRunDependency;
+  Module['removeRunDependency'] = removeRunDependency;
+  Module['FS_createPreloadedFile'] = FS_createPreloadedFile;
+  Module['FS_unlink'] = FS_unlink;
+  Module['FS_createPath'] = FS_createPath;
+  Module['FS_createDevice'] = FS_createDevice;
+  Module['FS_createDataFile'] = FS_createDataFile;
+  Module['FS_createLazyFile'] = FS_createLazyFile;
   var missingLibrarySymbols = [
   'writeI53ToI64Clamped',
   'writeI53ToI64Signaling',
@@ -9260,6 +9227,7 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'safeRequestAnimationFrame',
   'clearImmediateWrapped',
   'registerPostMainLoop',
+  'registerPreMainLoop',
   'getPromise',
   'makePromise',
   'idsToPromises',
@@ -9290,8 +9258,6 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
 
   var unexportedSymbols = [
   'run',
-  'addRunDependency',
-  'removeRunDependency',
   'out',
   'err',
   'callMain',
@@ -9413,7 +9379,6 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'emSetImmediate',
   'emClearImmediate_deps',
   'emClearImmediate',
-  'registerPreMainLoop',
   'promiseMap',
   'uncaughtExceptionCount',
   'exceptionLast',
@@ -9427,14 +9392,10 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'MONTH_DAYS_LEAP_CUMULATIVE',
   'SYSCALLS',
   'preloadPlugins',
-  'FS_createPreloadedFile',
   'FS_modeStringToFlags',
   'FS_getMode',
   'FS_stdin_getChar_buffer',
   'FS_stdin_getChar',
-  'FS_unlink',
-  'FS_createPath',
-  'FS_createDevice',
   'FS_readFile',
   'FS',
   'FS_root',
@@ -9540,9 +9501,7 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'FS_findObject',
   'FS_analyzePath',
   'FS_createFile',
-  'FS_createDataFile',
   'FS_forceLoadFile',
-  'FS_createLazyFile',
   'FS_absolutePath',
   'FS_createFolder',
   'FS_createLink',
