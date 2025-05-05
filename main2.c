@@ -629,6 +629,7 @@ char inputText[256] = "";
 SDL_Rect buttonRect1 = { 2, 2, 365, 58 };
 SDL_Rect buttonRect2 = { 440, 20, 150, 98 };
 SDL_Rect buttonRect3 = { 400, 600, 150, 98 };
+SDL_Rect buttonRect4 = { 2, 60, 365, 58};
 
 // Funcția principală de redare pentru Emscripten
 void main_loop() {
@@ -658,6 +659,11 @@ void main_loop() {
     // Buton GRÂU
     if (!show_modal) {
         if (handleButtonWithCondition(renderer, NULL, buttonTexture, buttonTexture, buttonRect1, mouseX, mouseY, mouseState, grau_e_copt)) {
+            show_modal = true;
+        }
+    }
+    if (!show_modal) {
+        if (handleButtonWithCondition(renderer, NULL, buttonTexture, buttonTexture, buttonRect4, mouseX, mouseY, mouseState, grau_e_copt)) {
             show_modal = true;
         }
     }
