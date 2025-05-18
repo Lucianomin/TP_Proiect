@@ -18,10 +18,15 @@
 bool cropPlanted[MAX_CROPS];
 bool tomatoPlanted[MAX_TOMATO];
 bool factoryUsed[MAX_FACTORY];
+int playerMoney=0;
+int g_factory_count=0;
+int g_crop_planted = 0;
+int g_tomato_planted = 0;
 bool grau_e_copt = true;
 bool bread_factory = true;
 bool barn_open = true;
 bool tomato_e_copt=true;
+bool shop_open = true;
 
 //input name
 char townName[32] = ""; // Buffer for town name
@@ -154,6 +159,7 @@ for (int i = 0; i < MAX_CROPS; i++) {
         wheat_count++;
     }
 }
+g_crop_planted=wheat_count;
 
 // Create the text "x N"
 char countText[20];
@@ -275,7 +281,7 @@ for (int i = 0; i < MAX_TOMATO; i++) {
         tomato_count++;
     }
 }
-
+g_tomato_planted=tomato_count;
 // Create the text "x N"
 char countText[20];
 sprintf(countText, "x %d", tomato_count);
@@ -460,7 +466,7 @@ void render_modal_factory(SDL_Renderer* renderer, bool* show_modal, TTF_Font* fo
             factory_count++;
         }
     }
-    
+    g_factory_count=factory_count;
     // Render count text
     char countText[20];
     snprintf(countText, sizeof(countText), "x %d", factory_count);
@@ -627,7 +633,7 @@ void render_modal_barn(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font)
             factory_count++;
         }
     }
-   
+   g_factory_count=factory_count;
 
     // Render count text under first button
     char countText[20];
@@ -655,6 +661,7 @@ void render_modal_barn(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font)
             crop_planted++;
         }
     }
+    g_crop_planted=crop_planted;
     // Render count text under second button (crops planted count)
     char cropCountText[20];
     snprintf(cropCountText, sizeof(cropCountText), "x %d", crop_planted);
@@ -683,6 +690,7 @@ void render_modal_barn(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font)
             tomato_planted++;
         }
     }
+    g_tomato_planted=tomato_planted;
     // Render count text under second button (crops planted count)
     char tomatoCountText[20];
     snprintf(tomatoCountText, sizeof(tomatoCountText), "x %d", tomato_planted);
@@ -705,7 +713,173 @@ void render_modal_barn(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font)
 }
 
 
-//aici functie de sell
+
+//aici functie de sell mini SHOP
+//<<__
+//<<--
+void render_modal_shop(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
+    static SDL_Texture* wheat_texture = NULL;
+    static SDL_Texture* corn_texture = NULL;
+    static SDL_Texture* tomato_texture = NULL;
+    static bool textures_loaded = false;
+
+    if (!textures_loaded) {
+        SDL_Surface* wheat_image = IMG_Load("assets/bread.png");
+        wheat_texture = wheat_image ? SDL_CreateTextureFromSurface(renderer, wheat_image) : NULL;
+        SDL_FreeSurface(wheat_image);
+
+        SDL_Surface* corn_image = IMG_Load("assets/wheat.png");
+        corn_texture = corn_image ? SDL_CreateTextureFromSurface(renderer, corn_image) : NULL;
+        SDL_FreeSurface(corn_image);
+
+        SDL_Surface* tomato_image = IMG_Load("assets/tomato.png");
+        tomato_texture = tomato_image ? SDL_CreateTextureFromSurface(renderer, tomato_image) : NULL;
+        SDL_FreeSurface(tomato_image);
+
+        textures_loaded = true;
+    }
+
+    // Overlay
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
+    SDL_RenderFillRect(renderer, NULL);
+
+    SDL_Rect modal = {WINDOW_W/2-200, WINDOW_H/2-150, 400, 300};
+    SDL_SetRenderDrawColor(renderer, 40, 40, 50, 255);
+    SDL_RenderFillRect(renderer, &modal);
+
+    SDL_Color white = {255, 255, 255, 255};
+
+    // Title
+    SDL_Surface* title_surf = TTF_RenderText_Blended(font, "Mini Shop - Sell Items", white);
+    SDL_Texture* title_tex = SDL_CreateTextureFromSurface(renderer, title_surf);
+    SDL_Rect title_rect = {modal.x + 20, modal.y + 10, title_surf->w, title_surf->h};
+    SDL_RenderCopy(renderer, title_tex, NULL, &title_rect);
+    SDL_FreeSurface(title_surf);
+    SDL_DestroyTexture(title_tex);
+
+    // Money display
+    char moneyText[32];
+    snprintf(moneyText, sizeof(moneyText), "Money: $%d", playerMoney);
+    SDL_Surface* money_surf = TTF_RenderText_Blended(font, moneyText, white);
+    SDL_Texture* money_tex = SDL_CreateTextureFromSurface(renderer, money_surf);
+    SDL_Rect money_rect = {modal.x + modal.w - money_surf->w - 35, modal.y + 10, money_surf->w, money_surf->h};
+    SDL_RenderCopy(renderer, money_tex, NULL, &money_rect);
+    SDL_FreeSurface(money_surf);
+    SDL_DestroyTexture(money_tex);
+
+    // Items setup
+    SDL_Rect slots[3] = {
+        {modal.x + 40, modal.y + 70, 80, 80},
+        {modal.x + 160, modal.y + 70, 80, 80},
+        {modal.x + 280, modal.y + 70, 80, 80}
+    };
+
+    SDL_Texture* textures[3] = {wheat_texture, corn_texture, tomato_texture};
+    int* counts[3] = {&g_factory_count, &g_crop_planted, &g_tomato_planted}; // Replace with your actual int vars
+    int prices[3] = {10, 15, 20}; // You define prices here
+
+    int mx, my;
+    Uint32 mouseState = SDL_GetMouseState(&mx, &my);
+
+    for (int i = 0; i < 3; i++) {
+        SDL_RenderDrawRect(renderer, &slots[i]);
+
+        if (textures[i])
+            SDL_RenderCopy(renderer, textures[i], NULL, &slots[i]);
+
+        // Count text
+        char countBuf[16];
+        snprintf(countBuf, sizeof(countBuf), "x%d", *counts[i]);
+        SDL_Surface* count_surf = TTF_RenderText_Blended(font, countBuf, white);
+        SDL_Texture* count_tex = SDL_CreateTextureFromSurface(renderer, count_surf);
+        SDL_Rect count_rect = {slots[i].x + 20, slots[i].y + 85, count_surf->w, count_surf->h};
+        SDL_RenderCopy(renderer, count_tex, NULL, &count_rect);
+        SDL_FreeSurface(count_surf);
+        SDL_DestroyTexture(count_tex);
+
+        // Sell button
+        SDL_Rect sellBtn = {slots[i].x, slots[i].y + 110, 80, 25};
+        bool hover = SDL_PointInRect(&(SDL_Point){mx, my}, &sellBtn);
+
+        SDL_SetRenderDrawColor(renderer, hover ? 120 : 90, 180, 90, 255);
+        SDL_RenderFillRect(renderer, &sellBtn);
+        SDL_RenderDrawRect(renderer, &sellBtn);
+
+        char sellText[32];
+        snprintf(sellText, sizeof(sellText), "Sell ($%d)", prices[i]);
+        SDL_Surface* sell_surf = TTF_RenderText_Blended(font, sellText, white);
+        SDL_Texture* sell_tex = SDL_CreateTextureFromSurface(renderer, sell_surf);
+        SDL_Rect sell_rect = {
+            sellBtn.x + (sellBtn.w - sell_surf->w)/2,
+            sellBtn.y + 3,
+            sell_surf->w,
+            sell_surf->h
+        };
+        SDL_RenderCopy(renderer, sell_tex, NULL, &sell_rect);
+        SDL_FreeSurface(sell_surf);
+        SDL_DestroyTexture(sell_tex);
+
+        // Click handling
+        
+if (hover && (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))) {
+    if (*counts[i] > 0) {
+        (*counts[i])--;
+        playerMoney += prices[i];
+
+        // Update boolean arrays
+        if (i == 0) { // Bread / factoryUsed
+            for (int j = MAX_FACTORY - 1; j >= 0; j--) {
+                if (factoryUsed[j]) {
+                    factoryUsed[j] = false;
+                    break;
+                }
+            }
+        }
+        else if (i == 1) { // Wheat / cropPlanted
+            for (int j = MAX_CROPS - 1; j >= 0; j--) {
+                if (cropPlanted[j]) {
+                    cropPlanted[j] = false;
+                    break;
+                }
+            }
+        }
+        else if (i == 2) { // Tomato / tomatoPlanted
+            for (int j = MAX_TOMATO - 1; j >= 0; j--) {
+                if (tomatoPlanted[j]) {
+                    tomatoPlanted[j] = false;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+    }
+
+    // Close button
+SDL_Rect close_btn = {modal.x + modal.w - 30, modal.y + 10, 20, 20};
+bool hovered = SDL_PointInRect(&(SDL_Point){mx, my}, &close_btn);
+
+// Draw red background
+SDL_SetRenderDrawColor(renderer, hovered ? 200 : 160, 60, 60, 255);
+SDL_RenderFillRect(renderer, &close_btn);
+
+// ✅ Now set color to white for the "X"
+SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+SDL_RenderDrawLine(renderer, close_btn.x + 4, close_btn.y + 4,
+                   close_btn.x + 16, close_btn.y + 16);
+SDL_RenderDrawLine(renderer, close_btn.x + 16, close_btn.y + 4,
+                   close_btn.x + 4, close_btn.y + 16);
+
+// Handle click
+if (hovered && (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))) {
+    *show_modal = false;
+}
+
+}
+
+
 
 
 
@@ -792,6 +966,7 @@ int main() {
     SDL_Rect buttonRect2 = {440, 20, 150, 98 };
     SDL_Rect buttonRect3 = {280, 560, 170, 108};
     SDL_Rect buttonRect4 = {2, 70, 365, 60};
+    SDL_Rect buttonRect5= {430, 480, 170, 108};
     //SDL_Color normal = { 255, 255, 255, 0 };    // Abuton transparent
     //SDL_Color hover = { 255, 99, 71, 0 };    // semi-transparent
     
@@ -869,6 +1044,7 @@ int main() {
         bool show_modal_factory = false;
         bool show_modal_barn = false;
         bool show_modal_tomato=false;
+        bool show_modal_shop=false;
         int running = 1;
         SDL_Event event;
         while (running) {
@@ -903,7 +1079,20 @@ int main() {
             render_modal_barn(renderer, &show_modal_barn, title_font);  // <<<<<< CALL IT CORRECTLY
         }
 
-
+          //buton SHOP
+          if(!show_modal_shop)
+          {
+              if (handleButtonWithCondition(renderer, NULL, buttonTextureBarn, buttonTextureBarn, buttonRect5, mouseX, mouseY, mouseState, shop_open))
+                  {
+                      show_modal_shop=true;
+                      printf("Butonul a fost apăsat și condiția e!\n");
+            
+                  }
+          }
+          if (show_modal_shop) {
+              render_modal_shop(renderer, &show_modal_shop, title_font);  // <<<<<< CALL IT CORRECTLY
+          }
+  
 
         //zona pentru modal grauu
         if (!show_modal) { 
