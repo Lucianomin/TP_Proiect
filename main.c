@@ -12,14 +12,16 @@
 //crops
 #define MAX_CROPS 6
 #define MAX_FACTORY 3
+#define MAX_TOMATO 6
 
 //Uint32 cropTimers[MAX_CROPS];
 bool cropPlanted[MAX_CROPS];
+bool tomatoPlanted[MAX_TOMATO];
 bool factoryUsed[MAX_FACTORY];
 bool grau_e_copt = true;
 bool bread_factory = true;
 bool barn_open = true;
-
+bool tomato_e_copt=true;
 
 //input name
 char townName[32] = ""; // Buffer for town name
@@ -177,6 +179,128 @@ SDL_FreeSurface(textSurface);
 SDL_DestroyTexture(textTexture);
     
 }
+
+
+//function for tomatoes
+void render_modal_tomato(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
+    // Semi-transparent overlay
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
+    SDL_RenderFillRect(renderer, NULL);
+    
+    // Modal box
+    SDL_Rect modal = {WINDOW_W/2-200, WINDOW_H/2-150, 400, 300};
+    SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
+    SDL_RenderFillRect(renderer, &modal);
+    
+    // Title bar (added)
+    SDL_Rect title_bar = {modal.x, modal.y, modal.w, 40};
+    SDL_SetRenderDrawColor(renderer, 70, 70, 80, 255);
+    SDL_RenderFillRect(renderer, &title_bar);
+    
+     // ====== REPLACE THE TITLE RECTANGLE WITH THIS TTF CODE ======
+     SDL_Color white = {255, 255, 255, 255};
+     SDL_Surface* title_surface = TTF_RenderText_Blended(font, "Choose crops:", white);
+     SDL_Texture* title_texture = SDL_CreateTextureFromSurface(renderer, title_surface);
+     SDL_Rect title_rect = {
+         modal.x + 15,
+         modal.y + (title_bar.h - title_surface->h)/2,
+         title_surface->w,
+         title_surface->h
+     };
+     SDL_RenderCopy(renderer, title_texture, NULL, &title_rect);
+     SDL_FreeSurface(title_surface);
+     SDL_DestroyTexture(title_texture);
+     // ====== END OF TTF CHANGES ======
+    
+    // Enhanced close button with hover effect
+    SDL_Rect close_btn = {modal.x + modal.w - 35, modal.y + 10, 20, 20};
+    
+    // Hover effect
+    int mx, my;
+    SDL_GetMouseState(&mx, &my);
+    bool hovered = SDL_PointInRect(&(SDL_Point){mx, my}, &close_btn);
+    
+    // Close button background
+    SDL_SetRenderDrawColor(renderer, 
+                         hovered ? 220 : 255,  // Brighter when hovered
+                         hovered ? 80 : 100,
+                         100,
+                         255);
+    SDL_RenderFillRect(renderer, &close_btn);
+    
+    // Close button border
+    SDL_SetRenderDrawColor(renderer, 180, 60, 60, 255);
+    SDL_RenderDrawRect(renderer, &close_btn);
+    
+    // Draw X symbol (your existing code)
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDrawLine(renderer, 
+                     close_btn.x + 5, close_btn.y + 5,
+                     close_btn.x + close_btn.w - 5, close_btn.y + close_btn.h - 5);
+    SDL_RenderDrawLine(renderer,
+                     close_btn.x + close_btn.w - 5, close_btn.y + 5,
+                     close_btn.x + 5, close_btn.y + close_btn.h - 5);
+    
+    // Check close button click
+    if (hovered && SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) {
+        *show_modal = false;
+    }
+    
+
+    // Modal content area (optional)
+    SDL_Rect content_area = {modal.x, modal.y + title_bar.h, modal.w, modal.h - title_bar.h};
+    SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
+    SDL_RenderFillRect(renderer, &content_area);
+    SDL_Rect buttonRect2={modal.x, modal.y-title_bar.h+90,60,60 };
+    SDL_Surface *wheat_image=IMG_Load("assets/tomato.png"); 
+    SDL_Texture *wheat_texture= SDL_CreateTextureFromSurface(renderer,wheat_image);
+    Uint32 mouseState = SDL_GetMouseState(&mx, &my);
+    SDL_FreeSurface(wheat_image);
+
+    if (drawButton(renderer, wheat_texture, wheat_texture, buttonRect2, mx, my, mouseState)) {
+        for (int i = 0; i < MAX_TOMATO; i++) {
+            if (!tomatoPlanted[i]) {
+                tomatoPlanted[i] = true;
+                //cropTimers[i] = SDL_GetTicks(); // pornește timer
+                printf("Rosie plantata în slotul %d!\n", i);
+                break;
+            }
+        }
+        SDL_Delay(200);
+    }
+    int tomato_count = 0;
+for (int i = 0; i < MAX_TOMATO; i++) {
+    if (tomatoPlanted[i]) {
+        tomato_count++;
+    }
+}
+
+// Create the text "x N"
+char countText[20];
+sprintf(countText, "x %d", tomato_count);
+
+// Render the text
+SDL_Color textColor = {255, 255, 255, 255}; // white
+SDL_Surface* textSurface = TTF_RenderText_Blended(font, countText, textColor);
+SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+
+// Set position under the wheat button
+SDL_Rect textRect = {
+    buttonRect2.x + buttonRect2.w/2 - textSurface->w/2, // center text horizontally
+    buttonRect2.y + buttonRect2.h + 5, // just below button
+    textSurface->w,
+    textSurface->h
+};
+
+SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+
+// Clean up
+SDL_FreeSurface(textSurface);
+SDL_DestroyTexture(textTexture);
+    
+}
+
 
 
 
@@ -362,6 +486,7 @@ void render_modal_barn(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font)
     // Load textures ONCE at program start, not here
     static SDL_Texture* wheat_texture = NULL;
     static SDL_Texture* corn_texture = NULL;
+    static SDL_Texture* tomato_texture = NULL;
     static SDL_Texture* corn_texture_hover = NULL;
     static bool textures_loaded = false;
     
@@ -397,6 +522,14 @@ void render_modal_barn(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font)
         }
         corn_texture = SDL_CreateTextureFromSurface(renderer, corn_image);
         SDL_FreeSurface(corn_image);
+
+        SDL_Surface* tomato_image = IMG_Load("assets/tomato.png"); // <-- new
+        if (!tomato_image) {
+            printf("Failed to load tomato.png: %s\n", IMG_GetError());
+            return;
+        }
+        tomato_texture = SDL_CreateTextureFromSurface(renderer, tomato_image);
+        SDL_FreeSurface(tomato_image);
 
         textures_loaded = true;
     }
@@ -478,7 +611,7 @@ void render_modal_barn(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font)
     // Buttons
     SDL_Rect buttonRect2 = {modal.x, modal.y - title_bar.h + 90, 60, 60};
     SDL_Rect buttonRect3 = {modal.x + 70, modal.y - title_bar.h + 90, 60, 60}; // Little spacing between buttons
-
+    SDL_Rect buttonRect4 = {modal.x + 140, modal.y - title_bar.h + 90, 60, 60};
     // First Button (Bread/Wheat)
     drawButton(renderer, wheat_texture, wheat_texture, buttonRect2, mx, my, mouseState);
     
@@ -486,7 +619,7 @@ void render_modal_barn(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font)
     // Second Button (Corn/Other)
     drawButton(renderer, corn_texture_hover, corn_texture, buttonRect3, mx, my, mouseState);
   
-
+    drawButton(renderer, tomato_texture, tomato_texture, buttonRect4, mx, my, mouseState);
     // Count active factories
      int factory_count = 0;
     for (int i = 0; i < MAX_FACTORY; i++) {
@@ -541,7 +674,39 @@ void render_modal_barn(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font)
         }
         SDL_FreeSurface(textSurface2);
     }
+
+
+    //pentru tomato
+    int tomato_planted=0;
+    for (int i = 0; i < MAX_TOMATO; i++) {
+        if (tomatoPlanted[i]) {
+            tomato_planted++;
+        }
+    }
+    // Render count text under second button (crops planted count)
+    char tomatoCountText[20];
+    snprintf(tomatoCountText, sizeof(tomatoCountText), "x %d", tomato_planted);
+
+    SDL_Surface* textSurface3 = TTF_RenderText_Blended(font, tomatoCountText, white);
+    if (textSurface3) {
+        SDL_Texture* textTexture3 = SDL_CreateTextureFromSurface(renderer, textSurface3);
+        if (textTexture3) {
+            SDL_Rect textRect3 = {
+                buttonRect4.x + buttonRect4.w/2 - textSurface3->w/2,
+                buttonRect4.y + buttonRect4.h + 5,
+                textSurface3->w,
+                textSurface3->h
+            };
+            SDL_RenderCopy(renderer, textTexture3, NULL, &textRect3);
+            SDL_DestroyTexture(textTexture3);
+        }
+        SDL_FreeSurface(textSurface3);
+    }
 }
+
+
+//aici functie de sell
+
 
 
 
@@ -677,8 +842,12 @@ int main() {
     // Încărcare imagine
     SDL_Surface *button_image=IMG_Load("assets/wheat_after.png"); 
     SDL_Texture *buttonTexture= SDL_CreateTextureFromSurface(renderer,button_image);
+    SDL_Surface *button_imageTomato=IMG_Load("assets/tomato_hover.png"); 
+    SDL_Texture *buttonTextureTomato= SDL_CreateTextureFromSurface(renderer,button_imageTomato);
     SDL_Surface *button_image_factory=IMG_Load("assets/bread_factory.png");
     SDL_Texture *buttonTextureFactory=SDL_CreateTextureFromSurface(renderer,button_image_factory);
+    SDL_Surface *button_image_barn=IMG_Load("assets/barn_image.png");
+    SDL_Texture *buttonTextureBarn=SDL_CreateTextureFromSurface(renderer,button_image_barn);
     SDL_Surface *image = IMG_Load("assets/grass_background_v2.jpg");
     if (!image) {
         printf("Eroare încărcare imagine: %s\n", IMG_GetError());
@@ -699,6 +868,7 @@ int main() {
         bool show_modal=false;
         bool show_modal_factory = false;
         bool show_modal_barn = false;
+        bool show_modal_tomato=false;
         int running = 1;
         SDL_Event event;
         while (running) {
@@ -722,7 +892,7 @@ int main() {
         //buton BARN
         if(!show_modal_barn)
         {
-            if (handleButtonWithCondition(renderer, NULL, buttonTextureFactory, buttonTextureFactory, buttonRect3, mouseX, mouseY, mouseState, barn_open))
+            if (handleButtonWithCondition(renderer, NULL, buttonTextureBarn, buttonTextureBarn, buttonRect3, mouseX, mouseY, mouseState, barn_open))
                 {
                     show_modal_barn=true;
                     printf("Butonul a fost apăsat și condiția e!\n");
@@ -736,21 +906,25 @@ int main() {
 
 
         //zona pentru modal grauu
-        if (!show_modal) { // Only clickable if modal is NOT open
+        if (!show_modal) { 
             if (handleButtonWithCondition(renderer, NULL, buttonTexture, buttonTexture, buttonRect1, mouseX, mouseY, mouseState, grau_e_copt)) {
-                show_modal = true;   // <<<<<< OPEN MODAL
+                show_modal = true;   // <<<<<< OPEN MOD
                 printf("Butonul a fost apăsat și condiția e %s!\n", grau_e_copt ? "adevărată" : "falsă");
             }
         }
-        if (!show_modal) { // Only clickable if modal is NOT open
-            if (handleButtonWithCondition(renderer, NULL, buttonTexture, buttonTexture, buttonRect4, mouseX, mouseY, mouseState, grau_e_copt)) {
-                show_modal = true;   // <<<<<< OPEN MODAL
-                printf("Butonul a fost apăsat și condiția e %s!\n", grau_e_copt ? "adevărată" : "falsă");
+        //aici sunt rosii plantatie
+        if (!show_modal_tomato) { 
+            if (handleButtonWithCondition(renderer, NULL, buttonTextureTomato, buttonTextureTomato, buttonRect4, mouseX, mouseY, mouseState, tomato_e_copt)) {
+                show_modal_tomato = true;   // <<<<<< OPEN MODAL
+                printf("Butonul a fost apăsat și condiția e %s!\n", tomato_e_copt ? "adevărată" : "falsă");
             }
         }
 
         if (show_modal) {
             render_modal(renderer, &show_modal, title_font);  // <<<<<< CALL IT CORRECTLY
+        }
+        if (show_modal_tomato) {
+            render_modal_tomato(renderer, &show_modal_tomato, title_font);  // <<<<<< CALL IT CORRECTLY
         }
 
         //for factory
