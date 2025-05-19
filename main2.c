@@ -1147,8 +1147,6 @@ void main_loop() {
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
 
-    SDL_Surface* wheat_image_hover = IMG_Load("assets/bread_hover.png");
-
     SDL_Surface *button_image=IMG_Load("assets/wheat_after.png"); 
     SDL_Texture *buttonTexture= SDL_CreateTextureFromSurface(renderer,button_image);
 
