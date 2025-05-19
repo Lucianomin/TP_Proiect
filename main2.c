@@ -469,13 +469,7 @@ void render_modal_factory(SDL_Renderer* renderer, bool* show_modal, TTF_Font* fo
     
     // Initialize textures if not already loaded
     if (!textures_loaded) {
-        SDL_Surface* wheat_image_hover = IMG_Load("assets/bread_hover.png");
-        if (!wheat_image_hover) {
-            printf("Failed to load bread_hover.png: %s\n", IMG_GetError());
-            return;
-        }
-        wheat_texture_hover = SDL_CreateTextureFromSurface(renderer, wheat_image_hover);
-        SDL_FreeSurface(wheat_image_hover);
+       
 
 
         SDL_Surface* wheat_image = IMG_Load("assets/bread.png");
