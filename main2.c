@@ -1112,10 +1112,16 @@ void drawTextInputBox(SDL_Renderer* renderer, TTF_Font* font) {
 
 // Variabile globale
 SDL_Renderer* renderer;
-SDL_Texture *texture, *buttonTexture, *buttonTextureFactory;
+SDL_Texture *texture, *buttonTexture, *buttonTextureFactory, *buttonTextureBarn, *buttonTextureTomato;
 TTF_Font* title_font;
 
-bool show_modal = false, show_modal_factory = false, show_modal_barn = false;
+// Buclă principală
+bool show_modal=false;
+bool show_modal_factory = false;
+bool show_modal_barn = false;
+bool show_modal_tomato=false;
+bool show_modal_shop=false;
+bool show_modal_pacane=false;
 char inputText[256] = "";
 
 // Rect-uri pentru butoane
