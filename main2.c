@@ -1050,67 +1050,61 @@ void main_loop() {
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
 
-
- 
     static bool textures_loaded_shop = false;
-
+    static bool textures_loaded = false;
+    
     if (!textures_loaded_shop) {
+        // --- Crops ---
         SDL_Surface* wheat_image = IMG_Load("assets/bread.png");
         wheat_texture = wheat_image ? SDL_CreateTextureFromSurface(renderer, wheat_image) : NULL;
         SDL_FreeSurface(wheat_image);
-
+    
         SDL_Surface* corn_image = IMG_Load("assets/wheat.png");
         corn_texture = corn_image ? SDL_CreateTextureFromSurface(renderer, corn_image) : NULL;
         SDL_FreeSurface(corn_image);
-
+    
         SDL_Surface* tomato_image = IMG_Load("assets/tomato.png");
         tomato_texture = tomato_image ? SDL_CreateTextureFromSurface(renderer, tomato_image) : NULL;
         SDL_FreeSurface(tomato_image);
-
+    
+        // --- Hover state for wheat (e.g. bread) ---
+        SDL_Surface* wheat_hover = IMG_Load("assets/bread_hover.png");
+        if (!wheat_hover) {
+            printf("Failed to load bread_hover.png: %s\n", IMG_GetError());
+            return;
+        }
+        wheat_texture_hover = SDL_CreateTextureFromSurface(renderer, wheat_hover);
+        SDL_FreeSurface(wheat_hover);
+    
+        // --- Buttons ---
+        SDL_Surface* button_image = IMG_Load("assets/wheat_after.png");
+        buttonTexture = button_image ? SDL_CreateTextureFromSurface(renderer, button_image) : NULL;
+        SDL_FreeSurface(button_image);
+    
+        SDL_Surface* button_imageTomato = IMG_Load("assets/tomato_hover.png");
+        buttonTextureTomato = button_imageTomato ? SDL_CreateTextureFromSurface(renderer, button_imageTomato) : NULL;
+        SDL_FreeSurface(button_imageTomato);
+    
+        SDL_Surface* button_image_factory = IMG_Load("assets/bread_factory.png");
+        buttonTextureFactory = button_image_factory ? SDL_CreateTextureFromSurface(renderer, button_image_factory) : NULL;
+        SDL_FreeSurface(button_image_factory);
+    
+        SDL_Surface* button_image_barn = IMG_Load("assets/barn_image.png");
+        buttonTextureBarn = button_image_barn ? SDL_CreateTextureFromSurface(renderer, button_image_barn) : NULL;
+        SDL_FreeSurface(button_image_barn);
+    
         textures_loaded_shop = true;
     }
-
-
-
-    static bool textures_loaded = false;
+    
     if (!textures_loaded) {
+        // --- Slot Machine Symbols ---
         symbol_textures[0] = IMG_LoadTexture(renderer, "assets/7_slot.png");
         symbol_textures[1] = IMG_LoadTexture(renderer, "assets/cherry.png");
         symbol_textures[2] = IMG_LoadTexture(renderer, "assets/bar.png");
+    
         textures_loaded = true;
     }
-    SDL_Surface* wheat_image_hover = IMG_Load("assets/bread_hover.png");
-    if (!wheat_image_hover) {
-        printf("Failed to load bread_hover.png: %s\n", IMG_GetError());
-        return;
-    }
-    wheat_texture_hover = SDL_CreateTextureFromSurface(renderer, wheat_image_hover);
-    SDL_FreeSurface(wheat_image_hover);
-
-
-    SDL_Surface* wheat_image = IMG_Load("assets/bread.png");
-    if (!wheat_image) {
-        printf("Failed to load bread.png: %s\n", IMG_GetError());
-        return;
-    }
-    wheat_texture = SDL_CreateTextureFromSurface(renderer, wheat_image);
-    SDL_FreeSurface(wheat_image);
-    textures_loaded = true;
-
-
-    SDL_Surface *button_image=IMG_Load("assets/wheat_after.png"); 
-    SDL_Texture *buttonTexture= SDL_CreateTextureFromSurface(renderer,button_image);
-
-    SDL_Surface *button_imageTomato=IMG_Load("assets/tomato_hover.png"); 
-    SDL_Texture *buttonTextureTomato= SDL_CreateTextureFromSurface(renderer,button_imageTomato);
-
-    SDL_Surface *button_image_factory=IMG_Load("assets/bread_factory.png");
-    SDL_Texture *buttonTextureFactory=SDL_CreateTextureFromSurface(renderer,button_image_factory);
-
-    SDL_Surface *button_image_barn=IMG_Load("assets/barn_image.png");
-    SDL_Texture *buttonTextureBarn=SDL_CreateTextureFromSurface(renderer,button_image_barn);
-
-
+    
     if (inputText[0]) drawTextInputBox(renderer, title_font);
 //buton pacane
 if(!show_modal_pacane)
