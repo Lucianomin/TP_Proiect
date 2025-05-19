@@ -1147,6 +1147,19 @@ void main_loop() {
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
 
+    SDL_Surface *button_image=IMG_Load("assets/wheat_after.png"); 
+    SDL_Texture *buttonTexture= SDL_CreateTextureFromSurface(renderer,button_image);
+
+    SDL_Surface *button_imageTomato=IMG_Load("assets/tomato_hover.png"); 
+    SDL_Texture *buttonTextureTomato= SDL_CreateTextureFromSurface(renderer,button_imageTomato);
+
+    SDL_Surface *button_image_factory=IMG_Load("assets/bread_factory.png");
+    SDL_Texture *buttonTextureFactory=SDL_CreateTextureFromSurface(renderer,button_image_factory);
+
+    SDL_Surface *button_image_barn=IMG_Load("assets/barn_image.png");
+    SDL_Texture *buttonTextureBarn=SDL_CreateTextureFromSurface(renderer,button_image_barn);
+
+
     if (inputText[0]) drawTextInputBox(renderer, title_font);
 //buton pacane
 if(!show_modal_pacane)
@@ -1280,17 +1293,7 @@ int main() {
     texture = SDL_CreateTextureFromSurface(renderer, image);
     SDL_FreeSurface(image);
 
-    SDL_Surface *button_image=IMG_Load("assets/wheat_after.png"); 
-    SDL_Texture *buttonTexture= SDL_CreateTextureFromSurface(renderer,button_image);
-
-    SDL_Surface *button_imageTomato=IMG_Load("assets/tomato_hover.png"); 
-    SDL_Texture *buttonTextureTomato= SDL_CreateTextureFromSurface(renderer,button_imageTomato);
-
-    SDL_Surface *button_image_factory=IMG_Load("assets/bread_factory.png");
-    SDL_Texture *buttonTextureFactory=SDL_CreateTextureFromSurface(renderer,button_image_factory);
-
-    SDL_Surface *button_image_barn=IMG_Load("assets/barn_image.png");
-    SDL_Texture *buttonTextureBarn=SDL_CreateTextureFromSurface(renderer,button_image_barn);
+   
 
 
     // Font
