@@ -40,7 +40,9 @@ const int num_symbols = 3;
 
 
 SDL_Texture* symbol_textures[3] = {NULL, NULL, NULL};
-
+static SDL_Texture* wheat_texture = NULL;
+static SDL_Texture* corn_texture = NULL;
+static SDL_Texture* tomato_texture = NULL;
 
 //slot machine
 int bet = 1;
@@ -866,26 +868,7 @@ void render_modal_barn(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font)
 //<<__
 //<<--
 void render_modal_shop(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
-    static SDL_Texture* wheat_texture = NULL;
-    static SDL_Texture* corn_texture = NULL;
-    static SDL_Texture* tomato_texture = NULL;
-    static bool textures_loaded = false;
-
-    if (!textures_loaded) {
-        SDL_Surface* wheat_image = IMG_Load("assets/bread.png");
-        wheat_texture = wheat_image ? SDL_CreateTextureFromSurface(renderer, wheat_image) : NULL;
-        SDL_FreeSurface(wheat_image);
-
-        SDL_Surface* corn_image = IMG_Load("assets/wheat.png");
-        corn_texture = corn_image ? SDL_CreateTextureFromSurface(renderer, corn_image) : NULL;
-        SDL_FreeSurface(corn_image);
-
-        SDL_Surface* tomato_image = IMG_Load("assets/tomato.png");
-        tomato_texture = tomato_image ? SDL_CreateTextureFromSurface(renderer, tomato_image) : NULL;
-        SDL_FreeSurface(tomato_image);
-
-        textures_loaded = true;
-    }
+   
 
     // Overlay
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -1139,6 +1122,28 @@ void main_loop() {
 
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+
+ 
+    static bool textures_loaded_shop = false;
+
+    if (!textures_loaded_shop) {
+        SDL_Surface* wheat_image = IMG_Load("assets/bread.png");
+        wheat_texture = wheat_image ? SDL_CreateTextureFromSurface(renderer, wheat_image) : NULL;
+        SDL_FreeSurface(wheat_image);
+
+        SDL_Surface* corn_image = IMG_Load("assets/wheat.png");
+        corn_texture = corn_image ? SDL_CreateTextureFromSurface(renderer, corn_image) : NULL;
+        SDL_FreeSurface(corn_image);
+
+        SDL_Surface* tomato_image = IMG_Load("assets/tomato.png");
+        tomato_texture = tomato_image ? SDL_CreateTextureFromSurface(renderer, tomato_image) : NULL;
+        SDL_FreeSurface(tomato_image);
+
+        textures_loaded_shop = true;
+    }
+
+
 
     static bool textures_loaded = false;
     if (!textures_loaded) {
