@@ -43,7 +43,8 @@ SDL_Texture* symbol_textures[3] = {NULL, NULL, NULL};
 static SDL_Texture* wheat_texture = NULL;
 static SDL_Texture* corn_texture = NULL;
 static SDL_Texture* tomato_texture = NULL;
-
+static SDL_Texture* wheat_texture_hover=NULL;
+static SDL_Texture* corn_texture_hover = NULL;
 //slot machine
 int bet = 1;
 int reels[3] = {0, 0, 0};
@@ -462,26 +463,8 @@ SDL_DestroyTexture(textTexture);
 
 //function render modal factory bread
 void render_modal_factory(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
-    // Load textures ONCE at program start, not here
-    static SDL_Texture* wheat_texture = NULL;
-    static SDL_Texture* wheat_texture_hover=NULL;
-    static bool textures_loaded = false;
-    
-    // Initialize textures if not already loaded
-    if (!textures_loaded) {
-       
 
-
-        SDL_Surface* wheat_image = IMG_Load("assets/bread.png");
-        if (!wheat_image) {
-            printf("Failed to load bread.png: %s\n", IMG_GetError());
-            return;
-        }
-        wheat_texture = SDL_CreateTextureFromSurface(renderer, wheat_image);
-        SDL_FreeSurface(wheat_image);
-        textures_loaded = true;
-    }
-
+   
     // Semi-transparent overlay
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
@@ -633,57 +616,7 @@ void render_modal_factory(SDL_Renderer* renderer, bool* show_modal, TTF_Font* fo
 }
 
 void render_modal_barn(SDL_Renderer* renderer, bool* show_modal, TTF_Font* font) {
-    // Load textures ONCE at program start, not here
-    static SDL_Texture* wheat_texture = NULL;
-    static SDL_Texture* corn_texture = NULL;
-    static SDL_Texture* tomato_texture = NULL;
-    static SDL_Texture* corn_texture_hover = NULL;
-    static bool textures_loaded = false;
-    
-    if (!textures_loaded) {
-        SDL_Surface* wheat_image_hover = IMG_Load("assets/bread_hover.png");
-        if (!wheat_image_hover) {
-            printf("Failed to load bread_hover.png: %s\n", IMG_GetError());
-            return;
-        }
-        
-        SDL_FreeSurface(wheat_image_hover);
-
-        SDL_Surface* wheat_image = IMG_Load("assets/bread.png");
-        if (!wheat_image) {
-            printf("Failed to load bread.png: %s\n", IMG_GetError());
-            return;
-        }
-        wheat_texture = SDL_CreateTextureFromSurface(renderer, wheat_image);
-        SDL_FreeSurface(wheat_image);
-
-        SDL_Surface* corn_image_hover = IMG_Load("assets/wheat.png"); // <-- new
-        if (!corn_image_hover) {
-            printf("Failed to load corn_hover.png: %s\n", IMG_GetError());
-            return;
-        }
-        corn_texture_hover = SDL_CreateTextureFromSurface(renderer, corn_image_hover);
-        SDL_FreeSurface(corn_image_hover);
-
-        SDL_Surface* corn_image = IMG_Load("assets/wheat.png"); // <-- new
-        if (!corn_image) {
-            printf("Failed to load wheat.png: %s\n", IMG_GetError());
-            return;
-        }
-        corn_texture = SDL_CreateTextureFromSurface(renderer, corn_image);
-        SDL_FreeSurface(corn_image);
-
-        SDL_Surface* tomato_image = IMG_Load("assets/tomato.png"); // <-- new
-        if (!tomato_image) {
-            printf("Failed to load tomato.png: %s\n", IMG_GetError());
-            return;
-        }
-        tomato_texture = SDL_CreateTextureFromSurface(renderer, tomato_image);
-        SDL_FreeSurface(tomato_image);
-
-        textures_loaded = true;
-    }
-
+  
     // Semi-transparent overlay
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
@@ -1146,7 +1079,23 @@ void main_loop() {
         symbol_textures[2] = IMG_LoadTexture(renderer, "assets/bar.png");
         textures_loaded = true;
     }
+    SDL_Surface* wheat_image_hover = IMG_Load("assets/bread_hover.png");
+    if (!wheat_image_hover) {
+        printf("Failed to load bread_hover.png: %s\n", IMG_GetError());
+        return;
+    }
+    wheat_texture_hover = SDL_CreateTextureFromSurface(renderer, wheat_image_hover);
+    SDL_FreeSurface(wheat_image_hover);
 
+
+    SDL_Surface* wheat_image = IMG_Load("assets/bread.png");
+    if (!wheat_image) {
+        printf("Failed to load bread.png: %s\n", IMG_GetError());
+        return;
+    }
+    wheat_texture = SDL_CreateTextureFromSurface(renderer, wheat_image);
+    SDL_FreeSurface(wheat_image);
+    textures_loaded = true;
 
 
     SDL_Surface *button_image=IMG_Load("assets/wheat_after.png"); 
