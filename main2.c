@@ -144,6 +144,7 @@ void render_slot_machine(SDL_Renderer* renderer, TTF_Font* font, bool* show_moda
             int win = evaluate_win();
             playerMoney += win;
         }
+        SDL_Delay(200);
     }
 
     //Mix_FreeChunk(spin_sound);
@@ -583,6 +584,7 @@ void render_modal_factory(SDL_Renderer* renderer, bool* show_modal, TTF_Font* fo
         } else {
             printf("Nu ai destul grau pentru a coace paine!\n");
         }
+        SDL_Delay(200);
     }
     
     
@@ -911,6 +913,7 @@ if (hover && (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))) {
             }
         }
     }
+    SDL_Delay(200);
 }
 
     }
