@@ -1,6 +1,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_mixer.h>
+
 #include <stdbool.h>
 #include <stdio.h>
 //bibliotexa proproe
@@ -32,6 +34,158 @@ bool shop_open = true;
 char townName[32] = ""; // Buffer for town name
 bool inputActive = true; // Start with input active
 SDL_Rect inputBox = {60, 628, 60, 30}; // Position and size of input box
+
+const char* symbols[] = {"7", "CHERRY", "BAR"};
+const int num_symbols = 3;
+
+
+SDL_Texture* symbol_textures[3] = {NULL, NULL, NULL};
+
+
+//slot machine
+int bet = 1;
+int reels[3] = {0, 0, 0};
+
+void spin_reels() {
+    for (int i = 0; i < 3; i++) {
+        reels[i] = rand() % num_symbols;
+    }
+}
+
+int evaluate_win() {
+    if (reels[0] == reels[1] && reels[1] == reels[2] && reels[0] == reels[2]) {
+        return bet * 10;  // jackpot
+    }
+    return 0; // no win
+}
+
+void draw_text(SDL_Renderer* renderer, TTF_Font* font, const char* text, int x, int y) {
+    SDL_Color color = {255, 255, 255};
+    SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect dest = {x, y, surface->w, surface->h};
+    SDL_RenderCopy(renderer, texture, NULL, &dest);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+}
+
+void render_slot_machine(SDL_Renderer* renderer, TTF_Font* font, bool* show_modal) {
+    static bool textures_loaded = false;
+    if (!textures_loaded) {
+        symbol_textures[0] = IMG_LoadTexture(renderer, "assets/7_slot.png");
+        symbol_textures[1] = IMG_LoadTexture(renderer, "assets/cherry.png");
+        symbol_textures[2] = IMG_LoadTexture(renderer, "assets/bar.png");
+        textures_loaded = true;
+    }
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
+    SDL_RenderFillRect(renderer, NULL);
+
+    SDL_Rect modal = {WINDOW_W / 2 - 250, WINDOW_H / 2 - 200, 500, 400};
+    SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
+    SDL_RenderFillRect(renderer, &modal);
+
+    SDL_Rect title_bar = {modal.x, modal.y, modal.w, 40};
+    SDL_SetRenderDrawColor(renderer, 70, 70, 80, 255);
+    SDL_RenderFillRect(renderer, &title_bar);
+
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Surface* title_surface = TTF_RenderText_Blended(font, "Casino Slot Machine", white);
+    SDL_Texture* title_texture = SDL_CreateTextureFromSurface(renderer, title_surface);
+    SDL_Rect title_rect = {
+        modal.x + 15,
+        modal.y + (title_bar.h - title_surface->h)/2,
+        title_surface->w,
+        title_surface->h
+    };
+    SDL_RenderCopy(renderer, title_texture, NULL, &title_rect);
+    SDL_FreeSurface(title_surface);
+    SDL_DestroyTexture(title_texture);
+
+    SDL_Rect close_btn = {modal.x + modal.w - 35, modal.y + 10, 20, 20};
+    int mx, my;
+    Uint32 mouseState = SDL_GetMouseState(&mx, &my);
+    bool hovered = SDL_PointInRect(&(SDL_Point){mx, my}, &close_btn);
+
+    SDL_SetRenderDrawColor(renderer, hovered ? 220 : 255, hovered ? 80 : 100, 100, 255);
+    SDL_RenderFillRect(renderer, &close_btn);
+
+    SDL_SetRenderDrawColor(renderer, 180, 60, 60, 255);
+    SDL_RenderDrawRect(renderer, &close_btn);
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDrawLine(renderer,
+                      close_btn.x + 5, close_btn.y + 5,
+                      close_btn.x + close_btn.w - 5, close_btn.y + close_btn.h - 5);
+    SDL_RenderDrawLine(renderer,
+                      close_btn.x + close_btn.w - 5, close_btn.y + 5,
+                      close_btn.x + 5, close_btn.y + close_btn.h - 5);
+
+    if (hovered && mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) {
+        *show_modal = false;
+        return;
+    }
+
+    SDL_Rect content_area = {modal.x, modal.y + title_bar.h, modal.w, modal.h - title_bar.h};
+    SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
+    SDL_RenderFillRect(renderer, &content_area);
+
+    SDL_Rect spin_btn = {modal.x + modal.w/2 - 60, modal.y + modal.h - 50, 120, 30};
+    bool spin_hovered = SDL_PointInRect(&(SDL_Point){mx, my}, &spin_btn);
+
+    SDL_SetRenderDrawColor(renderer, spin_hovered ? 180 : 130, 200, 80, 255);
+    SDL_RenderFillRect(renderer, &spin_btn);
+    SDL_RenderDrawRect(renderer, &spin_btn);
+    draw_text(renderer, font, "SPIN", spin_btn.x + 35, spin_btn.y + 5);
+
+    if (spin_hovered && (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))) {
+        if (playerMoney >= bet) {
+            playerMoney -= bet;
+            //Mix_PlayChannel(-1, spin_sound, 0);
+            spin_reels();
+            int win = evaluate_win();
+            playerMoney += win;
+        }
+    }
+
+    //Mix_FreeChunk(spin_sound);
+    //Mix_CloseAudio();
+    
+
+    char credit_text[64];
+    snprintf(credit_text, sizeof(credit_text), "CREDIT: %d", playerMoney);
+    draw_text(renderer, font, credit_text, modal.x + 20, modal.y + 60);
+
+    char bet_text[64];
+    snprintf(bet_text, sizeof(bet_text), "BET: %d", bet);
+    draw_text(renderer, font, bet_text, modal.x + 20, modal.y + 100);
+
+    for (int i = 0; i < 3; i++) {
+        SDL_Rect dst = {modal.x + 60 + i * 120, modal.y + 180, 64, 64};
+        SDL_RenderCopy(renderer, symbol_textures[reels[i]], NULL, &dst);
+    }
+
+    SDL_Rect bet_buttons[5];
+    int bet_values[5] = {1, 5, 25, 50, 100};
+    for (int i = 0; i < 5; i++) {
+        bet_buttons[i] = (SDL_Rect){modal.x + 20 + i * 90, modal.y + 130, 80, 30};
+        bool hover = SDL_PointInRect(&(SDL_Point){mx, my}, &bet_buttons[i]);
+        SDL_SetRenderDrawColor(renderer, hover || bet == bet_values[i] ? 200 : 100, 100, 200, 255);
+        SDL_RenderFillRect(renderer, &bet_buttons[i]);
+        SDL_RenderDrawRect(renderer, &bet_buttons[i]);
+
+        char label[16];
+        snprintf(label, sizeof(label), "$%d", bet_values[i]);
+        draw_text(renderer, font, label, bet_buttons[i].x + 20, bet_buttons[i].y + 5);
+
+        if (hover && (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))) {
+            bet = bet_values[i];
+        }  
+        
+    }
+}
+
 
 
 int drawButton(SDL_Renderer *renderer, SDL_Texture *button_texture, SDL_Texture *button_texture_2,SDL_Rect button, int mouseX, int mouseY, Uint32 mouseState) {
@@ -967,6 +1121,7 @@ int main() {
     SDL_Rect buttonRect3 = {280, 560, 170, 108};
     SDL_Rect buttonRect4 = {2, 70, 365, 60};
     SDL_Rect buttonRect5= {430, 480, 170, 108};
+    SDL_Rect buttonRect6={130, 250, 170, 108};
     //SDL_Color normal = { 255, 255, 255, 0 };    // Abuton transparent
     //SDL_Color hover = { 255, 99, 71, 0 };    // semi-transparent
     
@@ -989,6 +1144,14 @@ int main() {
         SDL_Quit();
         return 1;
     }
+    Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+Mix_Chunk* spin_sound = Mix_LoadWAV("assets/spin.mp3");
+if (!spin_sound) {
+    printf("Failed to load spin sound: %s\n", Mix_GetError());
+}
+
+
+
 
     // Creare fereastră
     SDL_Window *window = SDL_CreateWindow("Joc Hay Day",
@@ -1045,6 +1208,7 @@ int main() {
         bool show_modal_barn = false;
         bool show_modal_tomato=false;
         bool show_modal_shop=false;
+        bool show_modal_pacane=false;
         int running = 1;
         SDL_Event event;
         while (running) {
@@ -1064,7 +1228,24 @@ int main() {
         if (inputActive) {
         drawTextInputBox(renderer, title_font);
         }
-        
+        //buton pacane
+        if(!show_modal_pacane)
+        {
+            if (handleButtonWithCondition(renderer, NULL, buttonTextureBarn, buttonTextureBarn, buttonRect6, mouseX, mouseY, mouseState, barn_open))
+                {
+                    show_modal_pacane=true;
+                    printf("Butonul a fost apăsat și condiția e!\n");
+          
+                }
+        }
+        if (show_modal_pacane) {
+           
+                render_slot_machine(renderer, title_font, &show_modal_pacane);
+            
+              }
+
+
+
         //buton BARN
         if(!show_modal_barn)
         {
