@@ -71,14 +71,7 @@ void draw_text(SDL_Renderer* renderer, TTF_Font* font, const char* text, int x, 
 }
 
 void render_slot_machine(SDL_Renderer* renderer, TTF_Font* font, bool* show_modal) {
-    static bool textures_loaded = false;
-    if (!textures_loaded) {
-        symbol_textures[0] = IMG_LoadTexture(renderer, "assets/7_slot.png");
-        symbol_textures[1] = IMG_LoadTexture(renderer, "assets/cherry.png");
-        symbol_textures[2] = IMG_LoadTexture(renderer, "assets/bar.png");
-        textures_loaded = true;
-    }
-
+    
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
     SDL_RenderFillRect(renderer, NULL);
@@ -1146,6 +1139,16 @@ void main_loop() {
 
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+    static bool textures_loaded = false;
+    if (!textures_loaded) {
+        symbol_textures[0] = IMG_LoadTexture(renderer, "assets/7_slot.png");
+        symbol_textures[1] = IMG_LoadTexture(renderer, "assets/cherry.png");
+        symbol_textures[2] = IMG_LoadTexture(renderer, "assets/bar.png");
+        textures_loaded = true;
+    }
+
+
 
     SDL_Surface *button_image=IMG_Load("assets/wheat_after.png"); 
     SDL_Texture *buttonTexture= SDL_CreateTextureFromSurface(renderer,button_image);
